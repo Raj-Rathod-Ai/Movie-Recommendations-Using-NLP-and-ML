@@ -1,19 +1,18 @@
-# 🎬 CinemaVerse AI - Professional Movie Recommendation System
+# 🎬 CinemaVerse - Movie Recommendation System
 
-A modern, Netflix-inspired **AI Movie Recommendation Application** built with 100% pure **Python** and **Streamlit**. Powered by a pre-calculated TF-IDF cosine similarity matrix over 300,000+ movies, TMDB/OMDb poster integration, and **Google Gemini AI** for intelligent recommendations, summaries, and fallback insights.
+A modern, Netflix-inspired **Movie Recommendation Application** built with **Python** and **Streamlit**. Powered by a content similarity matrix over 300,000+ movies, interactive search autocomplete, movie posters, and detailed movie synopses.
 
 ---
 
 ## ✨ Key Features
 
-- **🎨 Dark Netflix/IMDb UI/UX**: Sleek midnight theme with glowing accents, glassmorphic cards, rating badges, and smooth hover effects.
+- **🎨 Dark Cinema UI/UX**: Modern midnight dark theme with glowing accents, glassmorphic cards, rating badges, and smooth hover effects.
 - **🔍 Search with Live Autocomplete**: Case-insensitive instant movie search with suggestions as you type across 303,000+ dataset entries.
-- **⚡ Sparse Similarity Engine**: Fast sub-second recommendation calculation using sparse TF-IDF matrix dot products.
-- **🤖 Gemini AI Integration**:
-  - AI-generated movie synopses & "Why Watch This" breakdowns.
-  - Vibe/Mood classifications, ideal audience tags, and fun facts.
-  - **Gemini Fallback Recommender**: Automatically steps in if a movie is not found in the local matrix dataset.
-- **🖼️ TMDB & OMDb Poster Fetcher**: High-resolution poster images with dynamic base64 SVG poster artwork fallbacks.
+- **⚡ Fast Recommendation Engine**: Sub-second recommendation calculation using similarity matrix dot products.
+- **📌 Movie Highlights & Overview**:
+  - Detailed movie synopses & "Why You'll Like It" breakdowns.
+  - Vibe/Mood classifications, ideal audience tags, and movie trivia.
+- **🖼️ High-Resolution Poster Artwork**: Sleek movie poster visuals and dynamic artwork cards.
 - **📱 Detailed Movie View**: Complete movie specs, YouTube trailer links, IMDb & TMDB links.
 - **❤️ Favorites & Recent History**: Bookmarks list stored in session state.
 - **🎲 Surprise Me Button**: Random movie discovery feature.
@@ -27,14 +26,14 @@ Movie_Recommendation/
 ├── app.py                  # Main Streamlit application
 ├── main.py                 # Launcher script
 ├── style.css               # Custom dark movie-themed CSS styling
-├── recommend.py            # Cosine similarity calculation & Gemini fallback logic
+├── recommend.py            # Cosine similarity calculation & recommendation logic
 ├── utils.py                # Cached dataset loading & search autocomplete
-├── poster_helper.py        # TMDB/OMDb poster fetcher & dynamic SVG artwork generator
-├── gemini_helper.py        # Google Gemini AI insights & fallback recommender
+├── poster_helper.py        # Poster rendering helper
+├── insights_helper.py      # Detailed movie synopses & fallback recommender
 ├── requirements.txt        # Required Python packages
-├── df.pkl                  # Movie dataset (Pandas DataFrame)
+├── df.pkl                  # Movie dataset
 ├── indices.pkl             # Movie title index mapping
-├── tfidf_matrix.pkl        # TF-IDF Sparse matrix pickle
+├── tfidf_matrix.pkl        # Sparse similarity matrix pickle
 └── README.md               # User guide & documentation
 ```
 
@@ -47,15 +46,11 @@ Movie_Recommendation/
 pip install -r requirements.txt
 ```
 
-### 2. Run the Streamlit Application
+### 2. Run the Application
 ```bash
 streamlit run app.py
 ```
 *(Or run `python main.py`)*
-
-### 3. API Keys (Optional)
-- **Google Gemini API Key**: Enter your key in the app sidebar to enable AI synopses and intelligent fallback recommendations. You can also export `GEMINI_API_KEY` in your environment or `.env`.
-- **TMDB API Key**: Enter your key in the sidebar for official high-resolution posters.
 
 ---
 
@@ -64,41 +59,33 @@ streamlit run app.py
 Follow these step-by-step instructions to deploy your app online for free:
 
 ### Step 1: Push Code to GitHub
-1. Initialize git (if not already done) and commit your code:
+1. Initialize git and commit your code:
    ```bash
-   git init
+   git lfs install
+   git lfs track "*.pkl"
    git add .
-   git commit -m "Initial commit of CinemaVerse AI Movie Recommender"
+   git commit -m "Deploy CinemaVerse Movie Recommender"
    ```
-2. Create a new repository on [GitHub](https://github.com/new).
-3. Connect your local repository and push:
+2. Connect your remote repository and push:
    ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/Movie_Recommendation.git
    git branch -M main
-   git push -u origin main
+   git push -u origin main --force
    ```
-   > **Note on Large Pickle Files**: `tfidf_matrix.pkl` is ~107MB. Use **Git LFS** (`git lfs track "*.pkl"`) or host large pickle files on GitHub Releases / Google Drive if GitHub warns about file size limits.
 
 ### Step 2: Deploy on Streamlit Cloud
 1. Go to [share.streamlit.io](https://share.streamlit.io) and log in with your GitHub account.
 2. Click the **"New app"** button.
-3. Select your GitHub repository (`Movie_Recommendation`), branch (`main`), and set Main file path to **`app.py`**.
-
-### Step 3: Add API Keys in App Secrets
-1. Before clicking Deploy, click **"Advanced settings..."** → **"Secrets"**.
-2. Paste your secret keys in TOML format:
+3. Select your GitHub repository (`Movie-Recommendations-Using-NLP-and-ML`), branch (`main`), and set Main file path to **`app.py`**.
+4. Click **"Advanced settings..."** → **"Secrets"** and paste your configuration key:
    ```toml
-   GEMINI_API_KEY = "your_gemini_api_key_here"
-   TMDB_API_KEY = "your_tmdb_api_key_here"
+   GEMINI_API_KEY = "your_access_key_here"
    ```
-3. Click **"Save"**, then click **"Deploy!"**. Your app will be live on a public `.streamlit.app` link within minutes!
+5. Click **"Save"**, then click **"Deploy!"**.
 
 ---
 
 ## 💻 Tech Stack
 - **Framework**: Streamlit
 - **Data Processing**: Pandas, NumPy, SciPy
-- **AI Integration**: Google Gemini API (`google-genai`)
 - **Styling**: Vanilla CSS (Injected via `st.markdown`)
-- **API Fetching**: Requests (TMDB & OMDb APIs)
-
+- **API Fetching**: Requests (TMDB & OMDb)

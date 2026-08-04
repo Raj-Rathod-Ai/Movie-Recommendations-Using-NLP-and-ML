@@ -6,13 +6,13 @@ import os
 import urllib.parse
 from dotenv import load_dotenv
 
-# Load environment variables silently
+# Load environment configuration silently
 load_dotenv()
 
 from utils import load_data, format_movie_title, search_movies, truncate_text
 from recommend import get_recommendations
 from poster_helper import fetch_poster_and_details
-from gemini_helper import get_gemini_insights
+from insights_helper import get_movie_insights
 
 # 1. Page Configuration
 st.set_page_config(
@@ -41,15 +41,15 @@ if "selected_movie_detail" not in st.session_state:
 if "current_search" not in st.session_state:
     st.session_state.current_search = "Toy Story"
 
-# 4. Load Data (Ultra-fast cached in memory)
+# 4. Load Data
 try:
     df, indices, tfidf_matrix = load_data()
     all_titles = df['title'].tolist()
 except Exception as e:
-    st.error(f"Error loading movie dataset: {e}")
+    st.error(f"Error loading dataset: {e}")
     st.stop()
 
-# 5. Clean Sidebar (Saved Favorites & History)
+# 5. Clean Sidebar
 with st.sidebar:
     st.markdown("### ❤️ Saved Movies")
     if st.session_state.favorites:
@@ -123,7 +123,6 @@ if get_rec_btn or selected_movie:
                 selected_movie, df, indices, tfidf_matrix, top_n=num_recs
             )
 
-        # 4-column responsive grid layout
         grid_cols = st.columns(4)
 
         for idx_pos, (_, row) in enumerate(rec_df.iterrows()):
@@ -136,7 +135,6 @@ if get_rec_btn or selected_movie:
             m_rating = str(row.get("vote_average", "N/A"))
             m_pop = str(row.get("popularity", "N/A"))
 
-            # Ultra-fast poster fetch
             meta = fetch_poster_and_details(m_title)
             poster_url = meta["poster_url"]
             year = meta.get("release_year", "")
@@ -145,7 +143,6 @@ if get_rec_btn or selected_movie:
             col_target = grid_cols[idx_pos % 4]
 
             with col_target:
-                # Unified Card Container with fixed uniform poster size and aligned buttons
                 st.markdown(f"""
                 <div class="movie-card-container">
                     <div class="movie-poster-wrap">
@@ -160,7 +157,6 @@ if get_rec_btn or selected_movie:
                 </div>
                 """, unsafe_allow_html=True)
 
-                # Card Buttons placed cleanly below card frame
                 c_act1, c_act2 = st.columns(2)
                 with c_act1:
                     if st.button("Details", key=f"det_{idx_pos}_{m_title}"):
@@ -219,7 +215,7 @@ if st.session_state.selected_movie_detail:
         # Highlights & Insights Panel
         st.markdown("<br>", unsafe_allow_html=True)
         with st.spinner("Loading movie details..."):
-            insights = get_gemini_insights(
+            insights = get_movie_insights(
                 det["title"], overview=det["overview"], genres=det["genres"]
             )
 
