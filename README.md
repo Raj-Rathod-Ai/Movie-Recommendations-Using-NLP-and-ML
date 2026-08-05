@@ -1,91 +1,27 @@
-# 🎬 CinemaVerse - Movie Recommendation System
+# 🎬 CinemaVerse - Movie & TV Series Recommendation System (NLP & ML)
 
-A modern, Netflix-inspired **Movie Recommendation Application** built with **Python** and **Streamlit**. Powered by a content similarity matrix over 300,000+ movies, interactive search autocomplete, movie posters, and detailed movie synopses.
+A modern, Netflix-inspired **Movie & TV Series Recommendation Application** built with **Python**, **Natural Language Processing (NLP)**, and **Streamlit**. Powered by TF-IDF vectorization and cosine similarity over a big dataset of 300,000+ movies & TV series.
 
 ---
 
 ## ✨ Key Features
 
 - **🎨 Dark Cinema UI/UX**: Modern midnight dark theme with glowing accents, glassmorphic cards, rating badges, and smooth hover effects.
-- **🔍 Search with Live Autocomplete**: Case-insensitive instant movie search with suggestions as you type across 303,000+ dataset entries.
-- **⚡ Fast Recommendation Engine**: Sub-second recommendation calculation using similarity matrix dot products.
-- **📌 Movie Highlights & Overview**:
-  - Detailed movie synopses & "Why You'll Like It" breakdowns.
-  - Vibe/Mood classifications, ideal audience tags, and movie trivia.
-- **🖼️ High-Resolution Poster Artwork**: Sleek movie poster visuals and dynamic artwork cards.
-- **📱 Detailed Movie View**: Complete movie specs, YouTube trailer links, IMDb & TMDB links.
-- **❤️ Favorites & Recent History**: Bookmarks list stored in session state.
-- **🎲 Surprise Me Button**: Random movie discovery feature.
+- **🔤 NLP Typo Auto-Corrector & Autocomplete**: Advanced token-matching and fuzzy search for instant movie & series lookup across 300,000+ dataset entries.
+- **🌐 Multi-Language Filter**: Filter recommendations and trailers by language (English, Hindi, Spanish, French, Japanese, Korean, German, Italian, Tamil, Telugu).
+- **⚡ High-Accuracy Recommendation Engine**: Sub-second similarity vector computations using TF-IDF matrix dot products.
+- **📌 Detailed Movie & Series Specs**:
+  - Synopses, narrative themes, and genre classifications.
+  - Auto-playing YouTube trailers with stereo audio links.
+- **🖼️ Official Poster Visuals**: High-resolution poster artwork fetcher for both movies and TV series.
+- **🎲 Surprise Me Button**: Random movie and TV show discovery feature.
 
 ---
 
-## 🛠️ Project Structure
-
-```
-Movie_Recommendation/
-├── app.py                  # Main Streamlit application
-├── main.py                 # Launcher script
-├── style.css               # Custom dark movie-themed CSS styling
-├── recommend.py            # Cosine similarity calculation & recommendation logic
-├── utils.py                # Cached dataset loading & search autocomplete
-├── poster_helper.py        # Poster rendering helper
-├── insights_helper.py      # Detailed movie synopses & fallback recommender
-├── requirements.txt        # Required Python packages
-├── df.pkl                  # Movie dataset
-├── indices.pkl             # Movie title index mapping
-├── tfidf_matrix.pkl        # Sparse similarity matrix pickle
-└── README.md               # User guide & documentation
-```
-
----
-
-## 🚀 Quickstart Guide
-
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-### 2. Run the Application
-```bash
-streamlit run app.py
-```
-*(Or run `python main.py`)*
-
----
-
-## 🌐 Deploying to Streamlit Community Cloud (share.streamlit.io)
-
-Follow these step-by-step instructions to deploy your app online for free:
-
-### Step 1: Push Code to GitHub
-1. Initialize git and commit your code:
-   ```bash
-   git lfs install
-   git lfs track "*.pkl"
-   git add .
-   git commit -m "Deploy CinemaVerse Movie Recommender"
-   ```
-2. Connect your remote repository and push:
-   ```bash
-   git branch -M main
-   git push -u origin main --force
-   ```
-
-### Step 2: Deploy on Streamlit Cloud
-1. Go to [share.streamlit.io](https://share.streamlit.io) and log in with your GitHub account.
-2. Click the **"New app"** button.
-3. Select your GitHub repository (`Movie-Recommendations-Using-NLP-and-ML`), branch (`main`), and set Main file path to **`app.py`**.
-4. Click **"Advanced settings..."** → **"Secrets"** and paste your configuration key:
-   ```toml
-   GEMINI_API_KEY = "your_access_key_here"
-   ```
-5. Click **"Save"**, then click **"Deploy!"**.
-
----
-
-## 💻 Tech Stack
-- **Framework**: Streamlit
+## 💻 Tech Stack & NLP Architecture
+- **NLP & ML Core**: Natural Language Processing (TF-IDF Vectorization, Tokenization, Cosine Similarity)
+- **Big Dataset**: 300,000+ Movies & TV Series Catalog Matrix
+- **UI Framework**: Python & Streamlit
 - **Data Processing**: Pandas, NumPy, SciPy
-- **Styling**: Vanilla CSS (Injected via `st.markdown`)
-- **API Fetching**: Requests (TMDB & OMDb)
+- **Styling**: Custom CSS Design Tokens
+

@@ -66,10 +66,11 @@ with st.sidebar:
 st.markdown("""
 <div class="hero-header">
     <div class="hero-title">🎬 CinemaVerse</div>
-    <div class="hero-subtitle">Discover your next favorite movie & series with high accuracy AI recommendations</div>
-    <div style="font-size: 0.88rem; color: #a5b4fc; margin-top: 8px; font-weight: 600;">⚡ Powered by NLP Typo Auto-Corrector & Multi-LLM AI Engine (Gemini + Mistral AI)</div>
+    <div class="hero-subtitle">Discover your next favorite movie & series with high accuracy NLP & ML recommendations</div>
+    <div style="font-size: 0.88rem; color: #a5b4fc; margin-top: 8px; font-weight: 600;">⚡ Powered by Advanced NLP Vector Similarity & Big Cinematic Dataset</div>
 </div>
 """, unsafe_allow_html=True)
+
 
 # Language Options Mapping
 LANG_OPTIONS = {
@@ -154,10 +155,11 @@ if get_rec_btn or selected_movie:
 
         st.markdown(f"### 🍿 Top {num_recs} Recommendations for **{format_movie_title(clean_sel)}** ({selected_lang_name})")
         
-        with st.spinner("Generating accurate recommendations..."):
+        with st.spinner("Processing NLP similarity matrix on big dataset..."):
             rec_df, source = get_recommendations(
                 clean_sel, df, indices, tfidf_matrix, top_n=num_recs, lang=selected_lang_code
             )
+
 
         if rec_df.empty:
             st.info("🔍 No relevant movies or TV series found for this search query/filter. Please try searching for a different title or clearing your language filter.")
@@ -168,52 +170,51 @@ if get_rec_btn or selected_movie:
                 if idx_pos >= num_recs:
                     break
 
-                break
+                m_title = str(row.get("title", "Unknown Title"))
+                if m_title.isnumeric():
+                    continue
 
-            m_title = str(row.get("title", "Unknown Title"))
-            if m_title.isnumeric():
-                continue
+                m_overview = str(row.get("overview", ""))
+                m_genres = str(row.get("genres", ""))
+                m_rating = str(row.get("vote_average", "N/A"))
 
-            m_overview = str(row.get("overview", ""))
-            m_genres = str(row.get("genres", ""))
-            m_rating = str(row.get("vote_average", "N/A"))
+                meta = fetch_poster_and_details(m_title)
+                poster_url = meta["poster_url"]
+                year = meta.get("release_year", "")
+                formatted_name = format_movie_title(m_title, year)
 
-            meta = fetch_poster_and_details(m_title)
-            poster_url = meta["poster_url"]
-            year = meta.get("release_year", "")
-            formatted_name = format_movie_title(m_title, year)
+                col_target = grid_cols[idx_pos % 4]
 
-            col_target = grid_cols[idx_pos % 4]
-
-            with col_target:
-                # Render Movie Poster Card
-                st.markdown(f"""
-                <div class="movie-card-container">
-                    <div class="movie-poster-wrap">
-                        <span class="movie-rating-badge">★ {m_rating[:3] if m_rating != 'N/A' and m_rating != '0.0' else '8.0'}</span>
-                        <img src="{poster_url}" class="movie-poster-img" alt="{m_title}" />
+                with col_target:
+                    # Render Movie Poster Card
+                    st.markdown(f"""
+                    <div class="movie-card-container">
+                        <div class="movie-poster-wrap">
+                            <span class="movie-rating-badge">★ {m_rating[:3] if m_rating != 'N/A' and m_rating != '0.0' else '8.0'}</span>
+                            <img src="{poster_url}" class="movie-poster-img" alt="{m_title}" />
+                        </div>
+                        <div class="movie-info">
+                            <div class="movie-title">{formatted_name}</div>
+                            <div class="movie-genres">{m_genres}</div>
+                            <div class="movie-overview">{truncate_text(m_overview, 85)}</div>
+                        </div>
                     </div>
-                    <div class="movie-info">
-                        <div class="movie-title">{formatted_name}</div>
-                        <div class="movie-genres">{m_genres}</div>
-                        <div class="movie-overview">{truncate_text(m_overview, 85)}</div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                    """, unsafe_allow_html=True)
 
-                # Clickable Poster Button Trigger (No separate Save or Details buttons needed)
-                if st.button(f"🎬 View Details", key=f"poster_click_{idx_pos}_{m_title}", use_container_width=True):
-                    st.session_state.selected_movie_detail = {
-                        "title": m_title,
-                        "formatted_name": formatted_name,
-                        "overview": m_overview,
-                        "genres": m_genres,
-                        "rating": m_rating,
-                        "poster_url": poster_url,
-                        "meta": meta
-                    }
-                    st.session_state.autoscroll = True
-                    st.rerun()
+                    # Clickable Poster Button Trigger (No separate Save or Details buttons needed)
+                    if st.button(f"🎬 View Details", key=f"poster_click_{idx_pos}_{m_title}", use_container_width=True):
+                        st.session_state.selected_movie_detail = {
+                            "title": m_title,
+                            "formatted_name": formatted_name,
+                            "overview": m_overview,
+                            "genres": m_genres,
+                            "rating": m_rating,
+                            "poster_url": poster_url,
+                            "meta": meta
+                        }
+                        st.session_state.autoscroll = True
+                        st.rerun()
+
 
 # 9. Clean Movie & Series Details Panel
 if st.session_state.selected_movie_detail:
@@ -263,10 +264,11 @@ if st.session_state.selected_movie_detail:
 
         # Highlights & Insights Panel
         st.markdown("<br>", unsafe_allow_html=True)
-        with st.spinner("Loading AI insights & trivia..."):
+        with st.spinner("Loading NLP content insights & trivia..."):
             insights = get_movie_insights(
                 det["title"], overview=det["overview"], genres=det["genres"]
             )
+
 
         st.markdown(f"""
         <div class="insights-box">
