@@ -41,6 +41,14 @@ if "current_search" not in st.session_state:
     st.session_state.current_search = "Harry Potter"
 if "autoscroll" not in st.session_state:
     st.session_state.autoscroll = False
+if "active_search_movie" not in st.session_state:
+    st.session_state.active_search_movie = None
+if "cached_rec_df" not in st.session_state:
+    st.session_state.cached_rec_df = None
+if "cached_rec_source" not in st.session_state:
+    st.session_state.cached_rec_source = None
+if "last_params" not in st.session_state:
+    st.session_state.last_params = {}
 
 # 4. Load Data
 try:
@@ -71,7 +79,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-
 # Language Options Mapping
 LANG_OPTIONS = {
     "🌐 All Languages": "all",
@@ -94,10 +101,8 @@ with col_search:
     user_query = st.text_input("Search for a movie or TV series:", value=st.session_state.current_search, placeholder="Type title (e.g. Money Heist, Harry Potter, House of Dragon)...")
     raw_suggestions = search_movies(user_query, all_titles, limit=12)
     
-    # Prepend active user query so typing a custom title is never overridden
     clean_q = user_query.strip() if user_query else ""
     if raw_suggestions:
-        # Top matched catalog title is index 0
         search_options = raw_suggestions
         if clean_q and clean_q.lower() not in [s.lower() for s in raw_suggestions]:
             search_options = [clean_q] + raw_suggestions
@@ -143,14 +148,44 @@ if surprise_btn:
     st.session_state.current_search = random_title
     selected_movie = random_title
     st.session_state.selected_movie_detail = None
+    st.session_state.cached_rec_df = None
     st.rerun()
 else:
     selected_movie = selected_from_dropdown if selected_from_dropdown else clean_q
 
+# Determine current search parameters
+current_params = {
+    "movie": selected_movie,
+    "lang": selected_lang_code,
+    "num": num_recs
+}
+
+# Recalculate recommendations ONLY if button clicked or parameters changed
+need_recalc = (
+    get_rec_btn or 
+    st.session_state.cached_rec_df is None or 
+    st.session_state.last_params != current_params
+)
+
+if get_rec_btn or (selected_movie and st.session_state.cached_rec_df is None):
+    # Lock in active parameters
+    st.session_state.last_params = current_params
+    st.session_state.active_search_movie = selected_movie
+    
+    clean_sel = str(selected_movie).strip()
+    if clean_sel and clean_sel not in st.session_state.recently_viewed:
+        st.session_state.recently_viewed.append(clean_sel)
+
+    with st.spinner("Processing NLP similarity matrix on big dataset..."):
+        rec_df, source = get_recommendations(
+            clean_sel, df, indices, tfidf_matrix, top_n=num_recs, lang=selected_lang_code
+        )
+        st.session_state.cached_rec_df = rec_df
+        st.session_state.cached_rec_source = source
+
 
 # Anchor for auto scroll
 st.markdown('<div id="recommendations-section"></div>', unsafe_allow_html=True)
-
 
 # 8. Movie & Series Details Panel (Renders Prominently at Top When Clicked)
 if st.session_state.selected_movie_detail:
@@ -187,7 +222,7 @@ if st.session_state.selected_movie_detail:
             st.markdown(f"**Genres:** `{det['genres']}`")
             st.markdown(f"**Synopsis:**\n{det['overview']}")
 
-            # Auto-Play YouTube Trailer Embed with Instant Caching & Full Audio Link
+            # Auto-Play YouTube Trailer Embed
             yt_embed_url = get_yt_trailer_embed_url(det["title"], lang=selected_lang_code)
             yt_watch_url = yt_embed_url.replace('/embed/', '/watch?v=').split('?')[0] if '/embed/' in yt_embed_url else f"https://www.youtube.com/results?search_query={urllib.parse.quote(det['title'] + ' trailer')}"
 
@@ -229,88 +264,80 @@ if st.session_state.selected_movie_detail:
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown("---")
 
-# 9. Recommendation Generation Grid
-if get_rec_btn or selected_movie:
-    if selected_movie and str(selected_movie).strip():
-        clean_sel = str(selected_movie).strip()
-        if clean_sel not in st.session_state.recently_viewed:
-            st.session_state.recently_viewed.append(clean_sel)
+# 9. Recommendation Generation Grid (Cached in State - NEVER Disappears on Click)
+if st.session_state.cached_rec_df is not None:
+    rec_df = st.session_state.cached_rec_df
+    active_search = st.session_state.active_search_movie or selected_movie
 
-        st.markdown(f"### 🍿 Top {num_recs} Recommendations for **{format_movie_title(clean_sel)}** ({selected_lang_name})")
-        
-        with st.spinner("Processing NLP similarity matrix on big dataset..."):
-            rec_df, source = get_recommendations(
-                clean_sel, df, indices, tfidf_matrix, top_n=num_recs, lang=selected_lang_code
-            )
+    st.markdown(f"### 🍿 Top {len(rec_df)} Recommendations for **{format_movie_title(str(active_search))}** ({selected_lang_name})")
 
-        if rec_df.empty:
-            st.info("🔍 No relevant movies or TV series found for this search query/filter. Please try searching for a different title or clearing your language filter.")
-        else:
-            grid_cols = st.columns(4)
+    if rec_df.empty:
+        st.info("🔍 No relevant movies or TV series found for this search query/filter. Please try searching for a different title or clearing your language filter.")
+    else:
+        grid_cols = st.columns(4)
 
-            for idx_pos, (_, row) in enumerate(rec_df.iterrows()):
-                if idx_pos >= num_recs:
-                    break
+        for idx_pos, (_, row) in enumerate(rec_df.iterrows()):
+            if idx_pos >= num_recs:
+                break
 
-                m_title = str(row.get("title", "Unknown Title"))
-                if m_title.isnumeric():
-                    continue
+            m_title = str(row.get("title", "Unknown Title"))
+            if m_title.isnumeric():
+                continue
 
-                m_overview = str(row.get("overview", ""))
-                m_genres = str(row.get("genres", ""))
-                m_rating = str(row.get("vote_average", "N/A"))
+            m_overview = str(row.get("overview", ""))
+            m_genres = str(row.get("genres", ""))
+            m_rating = str(row.get("vote_average", "N/A"))
 
-                meta = fetch_poster_and_details(m_title)
-                poster_url = meta["poster_url"]
-                year = meta.get("release_year", "")
-                formatted_name = format_movie_title(m_title, year)
+            meta = fetch_poster_and_details(m_title)
+            poster_url = meta["poster_url"]
+            year = meta.get("release_year", "")
+            formatted_name = format_movie_title(m_title, year)
 
-                col_target = grid_cols[idx_pos % 4]
+            col_target = grid_cols[idx_pos % 4]
 
-                with col_target:
-                    # Render Movie Poster Card
-                    st.markdown(f"""
-                    <div class="movie-card-container">
-                        <div class="movie-poster-wrap">
-                            <span class="movie-rating-badge">★ {m_rating[:3] if m_rating != 'N/A' and m_rating != '0.0' else '8.0'}</span>
-                            <img src="{poster_url}" class="movie-poster-img" alt="{m_title}" />
-                        </div>
-                        <div class="movie-info">
-                            <div class="movie-title">{formatted_name}</div>
-                            <div class="movie-genres">{m_genres}</div>
-                            <div class="movie-overview">{truncate_text(m_overview, 85)}</div>
-                        </div>
+            with col_target:
+                # Render Movie Poster Card
+                st.markdown(f"""
+                <div class="movie-card-container">
+                    <div class="movie-poster-wrap">
+                        <span class="movie-rating-badge">★ {m_rating[:3] if m_rating != 'N/A' and m_rating != '0.0' else '8.0'}</span>
+                        <img src="{poster_url}" class="movie-poster-img" alt="{m_title}" />
                     </div>
-                    """, unsafe_allow_html=True)
+                    <div class="movie-info">
+                        <div class="movie-title">{formatted_name}</div>
+                        <div class="movie-genres">{m_genres}</div>
+                        <div class="movie-overview">{truncate_text(m_overview, 85)}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    # Clickable Poster Button Trigger
-                    if st.button(f"🎬 View Details", key=f"poster_click_{idx_pos}_{m_title}", use_container_width=True):
-                        st.session_state.selected_movie_detail = {
-                            "title": m_title,
-                            "formatted_name": formatted_name,
-                            "overview": m_overview,
-                            "genres": m_genres,
-                            "rating": m_rating,
-                            "poster_url": poster_url,
-                            "meta": meta
-                        }
-                        st.session_state.autoscroll = True
-                        st.rerun()
+                # Clickable Poster Button Trigger (Saves detail to state without resetting grid)
+                if st.button(f"🎬 View Details", key=f"poster_click_{idx_pos}_{m_title}", use_container_width=True):
+                    st.session_state.selected_movie_detail = {
+                        "title": m_title,
+                        "formatted_name": formatted_name,
+                        "overview": m_overview,
+                        "genres": m_genres,
+                        "rating": m_rating,
+                        "poster_url": poster_url,
+                        "meta": meta
+                    }
+                    st.session_state.autoscroll = True
+                    st.rerun()
 
-    # Inject JavaScript smooth auto-scroll to details panel
-
-    if st.session_state.autoscroll:
-        st.session_state.autoscroll = False
-        components.html("""
-        <script>
-            setTimeout(function() {
-                var elem = window.parent.document.getElementById('movie-details-section');
-                if (elem) {
-                    elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            }, 300);
-        </script>
-        """, height=0)
+# Inject JavaScript smooth auto-scroll to details panel
+if st.session_state.autoscroll:
+    st.session_state.autoscroll = False
+    components.html("""
+    <script>
+        setTimeout(function() {
+            var elem = window.parent.document.getElementById('movie-details-section');
+            if (elem) {
+                elem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 300);
+    </script>
+    """, height=0)
 
 # 10. Minimalist Footer
 st.markdown("""
@@ -318,4 +345,3 @@ st.markdown("""
     <p>🍿 <strong>CinemaVerse</strong> — Premium Movie & Series Recommendation Platform</p>
 </div>
 """, unsafe_allow_html=True)
-
