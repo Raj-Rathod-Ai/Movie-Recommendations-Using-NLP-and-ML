@@ -96,10 +96,15 @@ with col_search:
     
     # Prepend active user query so typing a custom title is never overridden
     clean_q = user_query.strip() if user_query else ""
-    if clean_q:
-        search_options = [clean_q] + [s for s in raw_suggestions if s.lower() != clean_q.lower()]
-    else:
+    if raw_suggestions:
+        # Top matched catalog title is index 0
         search_options = raw_suggestions
+        if clean_q and clean_q.lower() not in [s.lower() for s in raw_suggestions]:
+            search_options = [clean_q] + raw_suggestions
+    elif clean_q:
+        search_options = [clean_q]
+    else:
+        search_options = all_titles[:12]
 
     selected_from_dropdown = st.selectbox(
         "Select title from catalog / suggestions:",

@@ -38,11 +38,13 @@ def is_fake_article_title(title: str) -> bool:
         'shows like', 'movies like', 'top 10', 'top 15', 'top 20', 'top 5', 'top 8',
         'best movies', 'best shows', 'similar tv shows', 'watch next',
         'like netflix', 'like money heist', 'similar to', 'recommendations for',
-        'bestsimilar', 'tudum', 'reddit', 'imdb', 'wiki', 'youtube', 'article'
+        'bestsimilar', 'tudum', 'reddit', 'imdb', 'wiki', 'youtube', 'article',
+        'list of', 'lists of', 'television series based on', 'marvel tv shows',
+        'marvel cinematic universe television', 'shows, series, & programs', 'publications'
     ]
     if any(kw in t_lower for kw in fake_keywords):
         return True
-    if t_lower.startswith(('10 ', '15 ', '20 ', '5 ', '7 ', '8 ', '12 ', 'best ', 'top ')):
+    if t_lower.startswith(('10 ', '15 ', '20 ', '5 ', '7 ', '8 ', '12 ', 'best ', 'top ', 'list of ')):
         return True
     return False
 

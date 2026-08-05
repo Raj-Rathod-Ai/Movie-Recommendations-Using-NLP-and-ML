@@ -4,6 +4,27 @@ import difflib
 import re
 from insights_helper import get_smart_fallback_recommendations
 
+# Canonical Title Alias Mapping to convert queries to official dataset titles
+TITLE_CANONICAL_MAP = {
+    'avenger': 'The Avengers',
+    'avengers': 'The Avengers',
+    'spiderman': 'Spider-Man',
+    'spider-man': 'Spider-Man',
+    'ironman': 'Iron Man',
+    'iron man': 'Iron Man',
+    'thor': 'Thor',
+    'batman': 'The Dark Knight',
+    'dark knight': 'The Dark Knight',
+    'harry potter': "Harry Potter and the Sorcerer's Stone",
+    'harry poter': "Harry Potter and the Sorcerer's Stone",
+    'money heist': 'Money Heist',
+    'berlin': 'Berlin',
+    'a aa': 'A Aa',
+    'avatar': 'Avatar',
+    'got': 'Game of Thrones',
+    'house of dragon': 'House of the Dragon'
+}
+
 def clean_title_string(title: str) -> str:
     """
     Remove language/year suffix tags like (IN Hindi), (IN Telugu), (2016) from query title.
@@ -13,7 +34,13 @@ def clean_title_string(title: str) -> str:
         return ""
     cleaned = re.sub(r'\s*\((?:IN\s*)?[A-Za-z0-9\s]+\)\s*$', '', title, flags=re.IGNORECASE)
     cleaned = re.sub(r'\s*\(\d{4}\)\s*$', '', cleaned)
-    return cleaned.strip() or title.strip()
+    t_str = cleaned.strip() or title.strip()
+    
+    # Map alias if available
+    t_lower = t_str.lower()
+    if t_lower in TITLE_CANONICAL_MAP:
+        return TITLE_CANONICAL_MAP[t_lower]
+    return t_str
 
 def is_valid_title_match(query_title: str, match_title: str) -> bool:
     """
@@ -32,7 +59,7 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
     Get top N relevant movie & series recommendations based on content similarity and selected language.
     Filters out obscure, numeric, or corrupt rows and falls back cleanly to smart AI recommendations.
     """
-    raw_title = movie_title.strip() if movie_title else "Harry Potter"
+    raw_title = movie_title.strip() if movie_title else "The Avengers"
     clean_title = clean_title_string(raw_title)
     
     # 1. Look up movie index using clean title
@@ -117,7 +144,7 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
                 if i == idx:
                     continue
                 cand_title = str(df.iloc[i]['title'])
-                if cand_title.isnumeric():
+                if cand_title.isnumeric() or cand_title.lower().startswith('list of'):
                     continue
                 cand_genres = str(df.iloc[i].get('genres', '')).lower()
                 if not is_target_animation and 'animation' in cand_genres and sim_scores[i] < 0.2:
