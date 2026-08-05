@@ -146,7 +146,85 @@ else:
 # Anchor for auto scroll
 st.markdown('<div id="recommendations-section"></div>', unsafe_allow_html=True)
 
-# 8. Recommendation Generation Grid
+
+# 8. Movie & Series Details Panel (Renders Prominently at Top When Clicked)
+if st.session_state.selected_movie_detail:
+    det = st.session_state.selected_movie_detail
+    st.markdown("---")
+    
+    col_back1, col_back2 = st.columns([1, 4])
+    with col_back1:
+        if st.button("⬅ Back to Grid", key="close_det_top", use_container_width=True):
+            st.session_state.selected_movie_detail = None
+            st.rerun()
+            
+    st.markdown('<div id="movie-details-section"></div>', unsafe_allow_html=True)
+    
+    with st.container():
+        st.markdown(f'<div class="details-container">', unsafe_allow_html=True)
+        col_img, col_info = st.columns([1, 2])
+
+        with col_img:
+            st.image(det["poster_url"], use_container_width=True)
+
+        with col_info:
+            st.markdown(f'<div class="details-title">{det["formatted_name"]}</div>', unsafe_allow_html=True)
+            rating_display = det['rating'][:3] if det['rating'] != 'N/A' and det['rating'] != '0.0' else '8.2'
+            
+            st.markdown(f"""
+            <div style="margin-bottom: 1rem;">
+                <span class="badge-tag badge-amber">★ Rating {rating_display}</span>
+                <span class="badge-tag badge-indigo">Genre: {det['genres'].split()[0] if det['genres'] else 'Cinema'}</span>
+                <span class="badge-tag badge-rose">Language: {det['meta'].get('original_language', 'EN')}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown(f"**Genres:** `{det['genres']}`")
+            st.markdown(f"**Synopsis:**\n{det['overview']}")
+
+            # Auto-Play YouTube Trailer Embed with Instant Caching & Full Audio Link
+            yt_embed_url = get_yt_trailer_embed_url(det["title"], lang=selected_lang_code)
+            yt_watch_url = yt_embed_url.replace('/embed/', '/watch?v=').split('?')[0] if '/embed/' in yt_embed_url else f"https://www.youtube.com/results?search_query={urllib.parse.quote(det['title'] + ' trailer')}"
+
+            st.markdown(f"""
+            <div style="margin-top: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: 700; color: #f43f5e; font-size: 1.05rem;">▶ Official Trailer (Auto-Play)</div>
+                    <a href="{yt_watch_url}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none; font-size: 0.88rem; background: rgba(99, 102, 241, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.3);">🔊 Open in YouTube (Full Stereo Audio) ↗</a>
+                </div>
+                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid rgba(244, 63, 94, 0.3);">
+                    <iframe src="{yt_embed_url}" title="{det['title']} Official Trailer" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"></iframe>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # Highlights & Insights Panel
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.spinner("Loading NLP content insights & trivia..."):
+            insights = get_movie_insights(
+                det["title"], overview=det["overview"], genres=det["genres"]
+            )
+
+        st.markdown(f"""
+        <div class="insights-box">
+            <div class="insights-header">📌 Highlights & Overview</div>
+            <p style="margin-bottom:0.5rem;"><strong>Summary:</strong> {insights.get('summary')}</p>
+            <p style="margin-bottom:0.5rem;"><strong>Why You'll Like It:</strong> {insights.get('why_recommended')}</p>
+            <p style="margin-bottom:0.5rem;"><strong>Mood:</strong> <span class="badge-tag badge-indigo">{insights.get('mood')}</span></p>
+            <p style="margin-bottom:0.5rem;"><strong>Best For:</strong> {insights.get('audience')}</p>
+            <p style="margin-bottom:0;"><strong>Trivia:</strong> {insights.get('fun_fact')}</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("✖ Close Details", key="close_det_bottom"):
+            st.session_state.selected_movie_detail = None
+            st.rerun()
+
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("---")
+
+# 9. Recommendation Generation Grid
 if get_rec_btn or selected_movie:
     if selected_movie and str(selected_movie).strip():
         clean_sel = str(selected_movie).strip()
@@ -159,7 +237,6 @@ if get_rec_btn or selected_movie:
             rec_df, source = get_recommendations(
                 clean_sel, df, indices, tfidf_matrix, top_n=num_recs, lang=selected_lang_code
             )
-
 
         if rec_df.empty:
             st.info("🔍 No relevant movies or TV series found for this search query/filter. Please try searching for a different title or clearing your language filter.")
@@ -201,7 +278,7 @@ if get_rec_btn or selected_movie:
                     </div>
                     """, unsafe_allow_html=True)
 
-                    # Clickable Poster Button Trigger (No separate Save or Details buttons needed)
+                    # Clickable Poster Button Trigger
                     if st.button(f"🎬 View Details", key=f"poster_click_{idx_pos}_{m_title}", use_container_width=True):
                         st.session_state.selected_movie_detail = {
                             "title": m_title,
@@ -215,80 +292,8 @@ if get_rec_btn or selected_movie:
                         st.session_state.autoscroll = True
                         st.rerun()
 
-
-# 9. Clean Movie & Series Details Panel
-if st.session_state.selected_movie_detail:
-    det = st.session_state.selected_movie_detail
-    st.markdown("---")
-    st.markdown('<div id="movie-details-section"></div>', unsafe_allow_html=True)
-    
-    with st.container():
-        st.markdown(f'<div class="details-container">', unsafe_allow_html=True)
-        col_img, col_info = st.columns([1, 2])
-
-        with col_img:
-            st.image(det["poster_url"], use_container_width=True)
-
-        with col_info:
-            st.markdown(f'<div class="details-title">{det["formatted_name"]}</div>', unsafe_allow_html=True)
-            rating_display = det['rating'][:3] if det['rating'] != 'N/A' and det['rating'] != '0.0' else '8.2'
-            
-            st.markdown(f"""
-            <div style="margin-bottom: 1rem;">
-                <span class="badge-tag badge-amber">★ Rating {rating_display}</span>
-                <span class="badge-tag badge-indigo">Genre: {det['genres'].split()[0] if det['genres'] else 'Cinema'}</span>
-                <span class="badge-tag badge-rose">Language: {det['meta'].get('original_language', 'EN')}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-            st.markdown(f"**Genres:** `{det['genres']}`")
-            st.markdown(f"**Synopsis:**\n{det['overview']}")
-
-            # Auto-Play YouTube Trailer Embed with Instant Caching & Full Audio Link
-            yt_embed_url = get_yt_trailer_embed_url(det["title"], lang=selected_lang_code)
-            yt_watch_url = yt_embed_url.replace('/embed/', '/watch?v=').split('?')[0] if '/embed/' in yt_embed_url else f"https://www.youtube.com/results?search_query={urllib.parse.quote(det['title'] + ' trailer')}"
-
-            
-            st.markdown(f"""
-            <div style="margin-top: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <div style="font-weight: 700; color: #f43f5e; font-size: 1.05rem;">▶ Official Trailer (Auto-Play)</div>
-                    <a href="{yt_watch_url}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none; font-size: 0.88rem; background: rgba(99, 102, 241, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.3);">🔊 Open in YouTube (Full Stereo Audio) ↗</a>
-                </div>
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid rgba(244, 63, 94, 0.3);">
-                    <iframe src="{yt_embed_url}" title="{det['title']} Official Trailer" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"></iframe>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-
-
-        # Highlights & Insights Panel
-        st.markdown("<br>", unsafe_allow_html=True)
-        with st.spinner("Loading NLP content insights & trivia..."):
-            insights = get_movie_insights(
-                det["title"], overview=det["overview"], genres=det["genres"]
-            )
-
-
-        st.markdown(f"""
-        <div class="insights-box">
-            <div class="insights-header">📌 Highlights & Overview</div>
-            <p style="margin-bottom:0.5rem;"><strong>Summary:</strong> {insights.get('summary')}</p>
-            <p style="margin-bottom:0.5rem;"><strong>Why You'll Like It:</strong> {insights.get('why_recommended')}</p>
-            <p style="margin-bottom:0.5rem;"><strong>Mood:</strong> <span class="badge-tag badge-indigo">{insights.get('mood')}</span></p>
-            <p style="margin-bottom:0.5rem;"><strong>Best For:</strong> {insights.get('audience')}</p>
-            <p style="margin-bottom:0;"><strong>Trivia:</strong> {insights.get('fun_fact')}</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("✖ Close Details", key="close_det"):
-            st.session_state.selected_movie_detail = None
-            st.rerun()
-
-        st.markdown('</div>', unsafe_allow_html=True)
-
     # Inject JavaScript smooth auto-scroll to details panel
+
     if st.session_state.autoscroll:
         st.session_state.autoscroll = False
         components.html("""
