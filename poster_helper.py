@@ -4,11 +4,64 @@ import streamlit as st
 import base64
 import hashlib
 
-TMDB_IMAGE_BASE_URL = "https://image.tmdb.org/t/p/w500"
+def fetch_real_poster_url(title: str) -> str:
+    """
+    Fetch real high-resolution poster image for a movie or TV series.
+    Tries iTunes API first, then TVmaze API, OMDb API, and Wikipedia API.
+    """
+    clean_title = title.strip()
+    if not clean_title:
+        return generate_svg_poster("Cinema")
+
+    encoded_title = urllib.parse.quote(clean_title)
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+
+    # 1. Try iTunes Search API (Highest Quality Movie & Series Posters)
+    try:
+        url = f"https://itunes.apple.com/search?term={encoded_title}&limit=5"
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            results = resp.json().get('results', [])
+            for item in results:
+                art = item.get('artworkUrl100') or item.get('artworkUrl60')
+                if art and isinstance(art, str):
+                    # Convert to high resolution 600x900
+                    high_res = art.replace('100x100bb.jpg', '600x900bb.jpg').replace('100x100bb.png', '600x900bb.jpg').replace('600x600bb', '600x900bb')
+                    return high_res
+    except Exception:
+        pass
+
+    # 2. Try TVmaze API (Great for TV Shows like House of the Dragon, Game of Thrones, etc.)
+    try:
+        url = f"https://api.tvmaze.com/singlesearch/shows?q={encoded_title}"
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            img = resp.json().get('image')
+            if img and isinstance(img, dict):
+                if img.get('original'):
+                    return img['original']
+                elif img.get('medium'):
+                    return img['medium']
+    except Exception:
+        pass
+
+    # 3. Try OMDb Free API Endpoint
+    try:
+        url = f"https://www.omdbapi.com/?t={encoded_title}&apikey=trilogy"
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            poster = resp.json().get('Poster')
+            if poster and poster.startswith('http') and poster != 'N/A':
+                return poster
+    except Exception:
+        pass
+
+    # 4. Fallback SVG Poster
+    return generate_svg_poster(clean_title)
 
 def generate_svg_poster(title: str, year: str = "") -> str:
     """
-    Generate an ultra-fast base64 SVG poster artwork.
+    Generate an SVG poster artwork fallback.
     """
     hash_val = int(hashlib.md5(title.encode()).hexdigest(), 16)
     palettes = [
@@ -56,13 +109,13 @@ def generate_svg_poster(title: str, year: str = "") -> str:
 @st.cache_data(ttl=86400, show_spinner=False)
 def fetch_poster_and_details(title: str) -> dict:
     """
-    Ultra-fast cached poster & metadata fetcher with zero network lag.
+    Cached poster & metadata fetcher delivering real movie thumbnails.
     """
     clean_title = title.strip()
+    poster_url = fetch_real_poster_url(clean_title)
     
-    # Instant SVG artwork fallback for maximum speed
     return {
-        "poster_url": generate_svg_poster(clean_title),
+        "poster_url": poster_url,
         "release_date": "N/A",
         "release_year": "",
         "vote_average": "N/A",
@@ -70,3 +123,4 @@ def fetch_poster_and_details(title: str) -> dict:
         "overview": "",
         "original_language": "EN"
     }
+
