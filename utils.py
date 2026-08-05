@@ -52,6 +52,9 @@ def truncate_text(text: str, max_chars: int = 110) -> str:
 ALIAS_MAP = {
     'spiderman': ['Spider-Man', 'Spider-Man 2', 'Spider-Man 3', 'The Amazing Spider-Man', 'Spider-Man: Into the Spider-Verse', 'Spider-Man: No Way Home'],
     'spider-man': ['Spider-Man', 'Spider-Man 2', 'Spider-Man 3', 'The Amazing Spider-Man', 'Spider-Man: Into the Spider-Verse', 'Spider-Man: No Way Home'],
+    'avenger': ['The Avengers', 'Avengers: Endgame', 'Avengers: Infinity War', 'Avengers: Age of Ultron'],
+    'avengers': ['The Avengers', 'Avengers: Endgame', 'Avengers: Infinity War', 'Avengers: Age of Ultron'],
+    'a aa': ['A Aa', 'Geetha Govindam', 'Fidaa', 'Ala Vaikunthapurramuloo'],
     'money heist': ['Money Heist', 'Berlin', 'Money Heist: Korea - Joint Economic Area'],
     'money heist s4': ['Money Heist', 'Berlin', 'Money Heist: Korea - Joint Economic Area'],
     'berlin': ['Berlin', 'Money Heist', 'Money Heist: Korea - Joint Economic Area'],
@@ -60,7 +63,10 @@ ALIAS_MAP = {
     'house of dragon': ['House of the Dragon', 'Game of Thrones'],
     'got': ['Game of Thrones', 'House of the Dragon'],
     'dark knight': ['The Dark Knight', 'Batman Begins', 'The Dark Knight Rises', 'The Batman'],
-    'batman': ['The Dark Knight', 'Batman Begins', 'The Batman', 'The Dark Knight Rises']
+    'batman': ['The Dark Knight', 'Batman Begins', 'The Batman', 'The Dark Knight Rises'],
+    'iron man': ['Iron Man', 'Iron Man 2', 'Iron Man 3', 'The Avengers'],
+    'thor': ['Thor', 'Thor: Ragnarok', 'Thor: The Dark World', 'Thor: Love and Thunder'],
+    'avatar': ['Avatar', 'Avatar: The Way of Water']
 }
 
 @st.cache_data(show_spinner=False)
@@ -132,6 +138,3 @@ def search_movies(query: str, all_titles: list, limit: int = 15) -> list:
                 seen.add(fz.lower())
 
     return matches[:limit]
-
-
-
