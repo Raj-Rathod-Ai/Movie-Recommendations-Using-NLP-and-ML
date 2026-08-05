@@ -73,22 +73,29 @@
     font-size: 0.95rem !important;
     letter-spacing: 0.2px !important;
     margin-bottom: 4px !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
 }
 
-/* INPUT & SELECTBOX CONTRAST FIX */
+/* INPUT & SELECTBOX CONTRAST FIX - OVERRIDE WEBKIT TEXT FILL */
 .stTextInput > div > div > input, 
 .stSelectbox > div > div,
+.stSelectbox div[data-baseweb="select"] div,
+.stSelectbox div[role="combobox"],
+.stSelectbox [aria-haspopup="listbox"],
+.stSelectbox [aria-expanded],
 [data-baseweb="select"] > div {
-    background-color: rgba(15, 23, 42, 0.92) !important;
-    border: 1px solid rgba(99, 102, 241, 0.45) !important;
+    background-color: rgba(15, 23, 42, 0.94) !important;
+    border: 1px solid rgba(99, 102, 241, 0.5) !important;
     border-radius: 10px !important;
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
     font-size: 0.95rem !important;
     font-weight: 600 !important;
 }
 
-[data-baseweb="select"] * {
+.stSelectbox * {
     color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 /* SELECTBOX DROPDOWN MENU CONTRAST FIX */
@@ -96,7 +103,7 @@
     background-color: #0f172a !important;
     border: 1px solid rgba(99, 102, 241, 0.5) !important;
     border-radius: 10px !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.85) !important;
 }
 
 [data-baseweb="menu"] [role="option"] {
@@ -107,7 +114,7 @@
 
 [data-baseweb="menu"] [role="option"]:hover, 
 [data-baseweb="menu"] [aria-selected="true"] {
-    background-color: rgba(99, 102, 241, 0.35) !important;
+    background-color: rgba(99, 102, 241, 0.4) !important;
     color: #ffffff !important;
 }
 
