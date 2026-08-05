@@ -74,9 +74,21 @@ st.markdown("""
 col_search, col_count, col_btn1, col_btn2 = st.columns([3, 2, 1, 1])
 
 with col_search:
-    user_query = st.text_input("Search for a movie or TV series:", value=st.session_state.current_search, placeholder="Type title (e.g. Harry Potter, House of Dragon, Inception)...")
-    suggestions = search_movies(user_query, all_titles, limit=12)
-    selected_from_dropdown = st.selectbox("Select title from catalog / suggestions:", options=suggestions, index=0 if suggestions else None)
+    user_query = st.text_input("Search for a movie or TV series:", value=st.session_state.current_search, placeholder="Type title (e.g. Money Heist, Harry Potter, House of Dragon)...")
+    raw_suggestions = search_movies(user_query, all_titles, limit=12)
+    
+    # Prepend active user query so typing a custom title is never overridden
+    clean_q = user_query.strip() if user_query else ""
+    if clean_q:
+        search_options = [clean_q] + [s for s in raw_suggestions if s.lower() != clean_q.lower()]
+    else:
+        search_options = raw_suggestions
+
+    selected_from_dropdown = st.selectbox(
+        "Select title from catalog / suggestions:",
+        options=search_options,
+        index=0 if search_options else None
+    )
 
 with col_count:
     num_recs = st.select_slider(
@@ -102,7 +114,8 @@ if surprise_btn:
     st.session_state.selected_movie_detail = None
     st.rerun()
 else:
-    selected_movie = selected_from_dropdown if selected_from_dropdown else user_query
+    selected_movie = selected_from_dropdown if selected_from_dropdown else clean_q
+
 
 # Anchor for auto scroll
 st.markdown('<div id="recommendations-section"></div>', unsafe_allow_html=True)

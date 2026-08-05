@@ -3,6 +3,18 @@ import numpy as np
 import difflib
 from insights_helper import get_smart_fallback_recommendations
 
+def is_valid_title_match(query_title: str, match_title: str) -> bool:
+    """
+    Validate that candidate match title actually shares core words with user query.
+    Prevents matching unrelated movies (e.g. Coin Heist for Money Heist, Merlin for Berlin).
+    """
+    q_words = [w for w in query_title.lower().replace(':', ' ').replace('-', ' ').split() if len(w) > 2]
+    m_words = [w for w in match_title.lower().replace(':', ' ').replace('-', ' ').split() if len(w) > 2]
+    if not q_words:
+        return query_title.lower() == match_title.lower()
+    matched_count = sum(1 for qw in q_words if any(qw == mw or difflib.SequenceMatcher(None, qw, mw).ratio() > 0.82 for mw in m_words))
+    return (matched_count / len(q_words)) >= 0.75
+
 def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, tfidf_matrix, top_n: int = 10, access_key: str = None) -> tuple:
     """
     Get top N relevant movie & series recommendations based on content similarity.
@@ -12,26 +24,49 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
     if not clean_title:
         clean_title = "Harry Potter and the Philosopher's Stone"
     
-    # 1. Look up movie index using exact match, case-insensitive match, or strict fuzzy match
+    # 1. Look up movie index using exact match, case-insensitive match, or strict validated fuzzy match
     idx = None
-    if clean_title in indices:
-        idx = indices[clean_title]
-        if isinstance(idx, (pd.Series, np.ndarray)):
-            idx = idx.iloc[0] if len(idx) > 0 else None
+    known_modern_shows = ["money heist", "berlin", "house of dragon", "house of the dragon", "game of thrones", "breaking bad", "stranger things", "peaky blinders", "lupin", "prison break", "narcos", "squid game"]
+
+    # Skip local movie dataset for famous modern TV shows
+    if clean_title.lower() in known_modern_shows:
+        idx = None
+    elif clean_title in indices:
+        matched_idx = indices[clean_title]
+        if isinstance(matched_idx, (pd.Series, np.ndarray)):
+            matched_idx = matched_idx.iloc[0] if len(matched_idx) > 0 else None
+        
+        # Verify that matched local movie is not an obscure zero-popularity entry overriding a famous modern show
+        if matched_idx is not None and matched_idx < len(df):
+            row_pop = pd.to_numeric(df.iloc[matched_idx].get('popularity', 0), errors='coerce') or 0
+            row_votes = pd.to_numeric(df.iloc[matched_idx].get('vote_average', 0), errors='coerce') or 0
+            if row_pop < 5.0 and row_votes < 5.0:
+                idx = None
+            else:
+                idx = matched_idx
     else:
         # Case-insensitive title lookup
         matching_rows = df[df['title'].str.lower() == clean_title.lower()]
         if not matching_rows.empty:
-            idx = matching_rows.index[0]
+            matched_idx = matching_rows.index[0]
+            row_pop = pd.to_numeric(df.iloc[matched_idx].get('popularity', 0), errors='coerce') or 0
+            if row_pop < 5.0:
+                idx = None
+            else:
+                idx = matched_idx
         else:
-            # Strict fuzzy match lookup in local dataset (cutoff=0.72 to avoid matching unrelated 'House of...' titles)
+            # Strict validated fuzzy match lookup
             non_numeric_titles = [str(t) for t in df['title'].tolist() if not str(t).isnumeric()]
-            close_matches = difflib.get_close_matches(clean_title, non_numeric_titles, n=1, cutoff=0.72)
-            if close_matches:
-                match_title = close_matches[0]
-                m_rows = df[df['title'] == match_title]
-                if not m_rows.empty:
-                    idx = m_rows.index[0]
+            close_matches = difflib.get_close_matches(clean_title, non_numeric_titles, n=3, cutoff=0.65)
+            for cm in close_matches:
+                if is_valid_title_match(clean_title, cm):
+                    m_rows = df[df['title'] == cm]
+                    if not m_rows.empty:
+                        idx = m_rows.index[0]
+                        break
+
+
+
 
     # 2. High-Accuracy Content Similarity Ranking
     if idx is not None and idx < len(df):
@@ -49,19 +84,37 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
             # Prioritize similarity (85%) over popularity (15%) for exact thematic match
             hybrid_scores = (0.85 * sim_scores) + (0.15 * norm_pop)
             
-            # Penalize numeric titles, unrated titles, or self match
-            valid_mask = (votes > 3.0) & (~is_numeric_title)
+            target_genres = str(df.iloc[idx].get('genres', '')).lower()
+            is_target_animation = 'animation' in target_genres
+
+            # Penalize numeric titles, unrated titles, or mismatched animation movies
+            valid_mask = (votes > 4.0) & (~is_numeric_title)
             hybrid_scores[~valid_mask] *= 0.05
             
             sorted_indices = np.argsort(hybrid_scores)[::-1]
-            top_indices = [i for i in sorted_indices if i != idx and not str(df.iloc[i]['title']).isnumeric()][:top_n]
             
+            top_indices = []
+            for i in sorted_indices:
+                if i == idx:
+                    continue
+                cand_title = str(df.iloc[i]['title'])
+                if cand_title.isnumeric():
+                    continue
+                cand_genres = str(df.iloc[i].get('genres', '')).lower()
+                # If target is live action, don't recommend unrelated animated movies
+                if not is_target_animation and 'animation' in cand_genres and sim_scores[i] < 0.2:
+                    continue
+                top_indices.append(i)
+                if len(top_indices) >= top_n:
+                    break
+
             rec_df = df.iloc[top_indices].copy()
             rec_df['similarity_score'] = sim_scores[top_indices]
             
-            # Ensure top recommendations have strong similarity
-            if len(rec_df) > 0 and sim_scores[top_indices[0]] > 0.08:
+            # Require minimum content similarity score (> 0.10) to return local results
+            if len(rec_df) > 0 and sim_scores[top_indices[0]] >= 0.10:
                 return rec_df, 'local'
+
         except Exception as e:
             print(f"Error computing similarity: {e}")
 

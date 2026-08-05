@@ -102,6 +102,16 @@ def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: 
     q_lower = query.lower()
 
     # Pre-defined curated fallbacks by genre/keyword
+    heist_crime_fallback = [
+        {"title": "Berlin", "release_year": "2023", "genres": "Action Crime Drama Mystery", "vote_average": 8.1, "popularity": 96.0, "overview": "During his golden age, Berlin gathers a master gang in Paris to pull off one of his most ambitious heists ever: making €44 million in jewels disappear."},
+        {"title": "Money Heist: Korea - Joint Economic Area", "release_year": "2022", "genres": "Action Crime Drama", "vote_average": 7.9, "popularity": 90.0, "overview": "Thieves overtake the mint of a unified Korea. With hostages trapped inside, the police must stop them — as well as the shadowy mastermind behind it all."},
+        {"title": "Lupin", "release_year": "2021", "genres": "Action Crime Drama Mystery", "vote_average": 8.2, "popularity": 92.0, "overview": "Inspired by the adventures of Arsène Lupin, gentleman thief Assane Diop sets out to avenge his father for an injustice inflicted by a wealthy family."},
+        {"title": "Prison Break", "release_year": "2005", "genres": "Action Crime Drama Thriller", "vote_average": 8.3, "popularity": 94.0, "overview": "An innocent man is framed for murder and sent to death row. His structural engineer brother devises an elaborate plan to break him out from the inside."},
+        {"title": "Peaky Blinders", "release_year": "2013", "genres": "Crime Drama History", "vote_average": 8.8, "popularity": 95.0, "overview": "A gangster family epic set in 1919 Birmingham, England; centered on a gang who sew razor blades in the peaks of their caps, and their fierce boss Tommy Shelby."},
+        {"title": "Narcos", "release_year": "2015", "genres": "Biography Crime Drama", "vote_average": 8.8, "popularity": 93.0, "overview": "A chronicled look at the criminal exploits of Colombian drug lord Pablo Escobar, as well as the many other drug kingpins through the years."},
+        {"title": "Ocean's Eleven", "release_year": "2001", "genres": "Crime Thriller", "vote_average": 7.7, "popularity": 89.0, "overview": "Danny Ocean and his eleven accomplices plan to rob three Las Vegas casinos simultaneously."}
+    ]
+
     fantasy_series_fallback = [
         {"title": "House of the Dragon", "release_year": "2022", "genres": "Action Adventure Drama Fantasy", "vote_average": 8.4, "popularity": 95.0, "overview": "The story of the House Targaryen set 200 years before the events of Game of Thrones."},
         {"title": "Game of Thrones", "release_year": "2011", "genres": "Action Adventure Drama Fantasy", "vote_average": 9.2, "popularity": 98.0, "overview": "Nine noble families fight for control over the lands of Westeros, while an ancient enemy returns after being dormant for millennia."},
@@ -112,10 +122,10 @@ def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: 
 
     wizard_fantasy_fallback = [
         {"title": "Harry Potter and the Sorcerer's Stone", "release_year": "2001", "genres": "Adventure Family Fantasy", "vote_average": 7.9, "popularity": 92.0, "overview": "An orphaned boy enrolls in a school of wizardry, where he learns the truth about himself, his family and the terrible evil that haunts the magical world."},
+        {"title": "Harry Potter and the Chamber of Secrets", "release_year": "2002", "genres": "Adventure Family Fantasy", "vote_average": 7.7, "popularity": 90.0, "overview": "An ancient prophecy seems to be coming true when a mysterious presence begins stalking the corridors of a school of magic."},
         {"title": "Fantastic Beasts and Where to Find Them", "release_year": "2016", "genres": "Adventure Family Fantasy", "vote_average": 7.3, "popularity": 85.0, "overview": "The adventures of writer Newt Scamander in New York's secret community of witches and wizards seventy years before Harry Potter reads his book in school."},
         {"title": "The Lord of the Rings: The Fellowship of the Ring", "release_year": "2001", "genres": "Action Adventure Drama Fantasy", "vote_average": 8.8, "popularity": 96.0, "overview": "A meek Hobbit from the Shire and eight companions set out on a journey to destroy the powerful One Ring and save Middle-earth from the Dark Lord Sauron."},
-        {"title": "The Chronicles of Narnia: The Lion, the Witch and the Wardrobe", "release_year": "2005", "genres": "Adventure Family Fantasy", "vote_average": 6.9, "popularity": 82.0, "overview": "Four kids travel through a wardrobe to the land of Narnia and learn of their destiny to free it with the guidance of a mystical lion."},
-        {"title": "Percy Jackson & the Olympians: The Lightning Thief", "release_year": "2010", "genres": "Adventure Family Fantasy", "vote_average": 5.9, "popularity": 78.0, "overview": "A teenager discovers he's the descendant of a Greek god and is set on an adventure to settle an on-going battle between the gods."}
+        {"title": "The Chronicles of Narnia: The Lion, the Witch and the Wardrobe", "release_year": "2005", "genres": "Adventure Family Fantasy", "vote_average": 6.9, "popularity": 82.0, "overview": "Four kids travel through a wardrobe to the land of Narnia and learn of their destiny to free it with the guidance of a mystical lion."}
     ]
 
     general_top_fallback = [
@@ -128,7 +138,9 @@ def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: 
 
     client = get_client(access_key)
     if not client:
-        if any(k in q_lower for k in ["dragon", "house", "thrones", "got", "targaryen", "witcher"]):
+        if any(k in q_lower for k in ["heist", "money", "berlin", "lupin", "prison", "narcos", "breaking", "peaky", "robbery"]):
+            return heist_crime_fallback[:top_n]
+        elif any(k in q_lower for k in ["dragon", "house", "thrones", "got", "targaryen", "witcher"]):
             return fantasy_series_fallback[:top_n]
         elif any(k in q_lower for k in ["harry", "potter", "wizard", "magic", "beasts", "narnia"]):
             return wizard_fantasy_fallback[:top_n]
@@ -146,7 +158,10 @@ def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: 
     - "popularity": Popularity score (e.g. 85.0)
     - "overview": Concise 2-sentence synopsis.
 
-    Do NOT include generic numbers or numeric titles like "7010", "0", "15".
+    Rules:
+    - If user asks for "Money Heist" or heist shows, include "Berlin", "Lupin", "Money Heist: Korea", "Prison Break".
+    - If user asks for "Harry Potter", include live-action wizard/fantasy movies ("Harry Potter" sequels/prequels, "Fantastic Beasts", "Lord of the Rings"). Do NOT include animated cartoon movies.
+    - Do NOT include generic numbers or numeric titles like "7010", "0", "15".
     Return ONLY valid raw JSON array with no markdown backticks.
     """
 
@@ -165,13 +180,16 @@ def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: 
             if clean_movies:
                 return clean_movies[:top_n]
     except Exception as e:
-        logger.warning(f"Fallback recommendation API error (e.g. rate limit): {e}")
+        logger.warning(f"Fallback recommendation API error: {e}")
 
     # Fallback to curated keyword matching list if API fails or hits 429 rate limit
-    if any(k in q_lower for k in ["dragon", "house", "thrones", "got", "targaryen", "witcher"]):
+    if any(k in q_lower for k in ["heist", "money", "berlin", "lupin", "prison", "narcos", "breaking", "peaky", "robbery"]):
+        return heist_crime_fallback[:top_n]
+    elif any(k in q_lower for k in ["dragon", "house", "thrones", "got", "targaryen", "witcher"]):
         return fantasy_series_fallback[:top_n]
     elif any(k in q_lower for k in ["harry", "potter", "wizard", "magic", "beasts", "narnia"]):
         return wizard_fantasy_fallback[:top_n]
     return general_top_fallback[:top_n]
+
 
 

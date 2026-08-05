@@ -16,22 +16,25 @@ def fetch_real_poster_url(title: str) -> str:
     encoded_title = urllib.parse.quote(clean_title)
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-    # 1. Try iTunes Search API (Highest Quality Movie & Series Posters)
+    # 1. Try iTunes Search API (Verify Title Match)
     try:
-        url = f"https://itunes.apple.com/search?term={encoded_title}&limit=5"
+        url = f"https://itunes.apple.com/search?term={encoded_title}&limit=6"
         resp = requests.get(url, headers=headers, timeout=3)
         if resp.status_code == 200:
             results = resp.json().get('results', [])
+            q_first_word = clean_title.lower().split()[0]
             for item in results:
-                art = item.get('artworkUrl100') or item.get('artworkUrl60')
-                if art and isinstance(art, str):
-                    # Convert to high resolution 600x900
-                    high_res = art.replace('100x100bb.jpg', '600x900bb.jpg').replace('100x100bb.png', '600x900bb.jpg').replace('600x600bb', '600x900bb')
-                    return high_res
+                track_name = str(item.get('trackName') or item.get('collectionName') or item.get('trackCensoredName') or '').lower()
+                # Verify that the returned item actually shares title words
+                if q_first_word in track_name or any(w in track_name for w in clean_title.lower().split() if len(w) > 2):
+                    art = item.get('artworkUrl100') or item.get('artworkUrl60')
+                    if art and isinstance(art, str):
+                        high_res = art.replace('100x100bb.jpg', '600x900bb.jpg').replace('100x100bb.png', '600x900bb.jpg').replace('600x600bb', '600x900bb')
+                        return high_res
     except Exception:
         pass
 
-    # 2. Try TVmaze API (Great for TV Shows like House of the Dragon, Game of Thrones, etc.)
+    # 2. Try TVmaze API (Great for TV Shows like House of the Dragon, Money Heist, etc.)
     try:
         url = f"https://api.tvmaze.com/singlesearch/shows?q={encoded_title}"
         resp = requests.get(url, headers=headers, timeout=3)
@@ -55,6 +58,7 @@ def fetch_real_poster_url(title: str) -> str:
                 return poster
     except Exception:
         pass
+
 
     # 4. Fallback SVG Poster
     return generate_svg_poster(clean_title)
