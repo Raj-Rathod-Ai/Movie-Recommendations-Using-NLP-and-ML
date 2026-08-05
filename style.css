@@ -1,18 +1,18 @@
-/* CinemaVerse - Ultra-Fast Uniform Alignment & Responsive Layout */
+/* CinemaVerse - High Contrast, High Visibility & Fully Responsive UI */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
 
 :root {
     --bg-main: #090d16;
-    --bg-card: rgba(19, 27, 46, 0.85);
-    --bg-card-hover: rgba(26, 36, 61, 0.95);
+    --bg-card: rgba(19, 27, 46, 0.88);
+    --bg-card-hover: rgba(26, 36, 61, 0.96);
     --accent-primary: #6366f1;
     --accent-hover: #4f46e5;
     --accent-pink: #f43f5e;
     --accent-gold: #f5c518;
-    --text-primary: #f8fafc;
-    --text-secondary: #94a3b8;
-    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #ffffff;
+    --text-secondary: #cbd5e1;
+    --border-color: rgba(255, 255, 255, 0.12);
 }
 
 /* Global Reset */
@@ -62,37 +62,102 @@
     border-right: 1px solid var(--border-color) !important;
 }
 
-/* Card Component - Fixed Uniform Height Across ALL Cards */
+/* HIGH CONTRAST INPUT LABELS & CONTROLS */
+.stTextInput label, 
+.stSelectbox label, 
+.stSlider label, 
+[data-testid="stWidgetLabel"] p, 
+[data-testid="stWidgetLabel"] span {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.2px !important;
+    margin-bottom: 4px !important;
+}
+
+/* INPUT & SELECTBOX CONTRAST FIX */
+.stTextInput > div > div > input, 
+.stSelectbox > div > div,
+[data-baseweb="select"] > div {
+    background-color: rgba(15, 23, 42, 0.92) !important;
+    border: 1px solid rgba(99, 102, 241, 0.45) !important;
+    border-radius: 10px !important;
+    color: #ffffff !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+}
+
+[data-baseweb="select"] * {
+    color: #ffffff !important;
+}
+
+/* SELECTBOX DROPDOWN MENU CONTRAST FIX */
+[data-baseweb="menu"] {
+    background-color: #0f172a !important;
+    border: 1px solid rgba(99, 102, 241, 0.5) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8) !important;
+}
+
+[data-baseweb="menu"] [role="option"] {
+    color: #ffffff !important;
+    background-color: #0f172a !important;
+    font-weight: 500 !important;
+}
+
+[data-baseweb="menu"] [role="option"]:hover, 
+[data-baseweb="menu"] [aria-selected="true"] {
+    background-color: rgba(99, 102, 241, 0.35) !important;
+    color: #ffffff !important;
+}
+
+/* SLIDER CONTRAST & VISIBILITY FIX */
+.stSlider [data-baseweb="slider"] {
+    color: #ffffff !important;
+}
+
+.stSlider div[role="slider"] {
+    background-color: #f43f5e !important;
+    border: 2px solid #ffffff !important;
+    box-shadow: 0 0 12px rgba(244, 63, 94, 0.6) !important;
+}
+
+.stSlider [data-testid="stTickBar"] span {
+    color: #a5b4fc !important;
+    font-weight: 600 !important;
+}
+
+/* CARD CONTAINER - UNIFORM POSTER & CLEAN LAYOUT */
 .movie-card-container {
     background: var(--bg-card);
     backdrop-filter: blur(16px);
     border: 1px solid var(--border-color);
     border-radius: 16px;
     overflow: hidden;
-    height: 480px; /* Fixed uniform height for perfect row alignment */
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
     margin-bottom: 0.8rem;
-    cursor: pointer;
+    min-height: 420px;
+    height: 100%;
 }
 
 .movie-card-container:hover {
-    transform: translateY(-6px);
+    transform: translateY(-5px);
     border-color: rgba(99, 102, 241, 0.6);
-    box-shadow: 0 18px 40px rgba(99, 102, 241, 0.3);
+    box-shadow: 0 16px 36px rgba(99, 102, 241, 0.28);
     background: var(--bg-card-hover);
 }
 
-/* Fixed Uniform Poster Box */
+/* UNIFORM POSTER BOX - FULL-BLEED & NO OVERFLOW */
 .movie-poster-wrap {
     position: relative;
     width: 100%;
-    height: 290px; /* Taller uniform height for posters */
+    height: 260px;
     overflow: hidden;
-    background: #0f172a;
+    background: #0c101d;
     border-bottom: 1px solid var(--border-color);
     flex-shrink: 0;
 }
@@ -100,13 +165,13 @@
 .movie-poster-img {
     width: 100%;
     height: 100%;
-    object-fit: cover; /* Exact uniform crop and size for ALL posters */
+    object-fit: cover;
     display: block;
     transition: transform 0.4s ease;
 }
 
 .movie-card-container:hover .movie-poster-img {
-    transform: scale(1.06);
+    transform: scale(1.05);
 }
 
 .movie-rating-badge {
@@ -123,7 +188,6 @@
     border: 1px solid rgba(245, 197, 24, 0.4);
     z-index: 2;
 }
-
 
 .movie-info {
     padding: 0.85rem;
@@ -143,7 +207,7 @@
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    height: 2.6rem; /* Uniform title block height */
+    min-height: 2.5rem;
     word-break: break-word;
 }
 
@@ -169,45 +233,37 @@
     word-break: break-word;
 }
 
-.card-actions {
-    padding: 0.6rem 0.85rem 0.85rem 0.85rem;
-    display: flex;
-    gap: 8px;
-    background: rgba(13, 19, 34, 0.5);
-    border-top: 1px solid var(--border-color);
-}
-
-/* Button Customization inside Cards */
+/* BUTTON CUSTOMIZATION */
 .stButton > button {
     background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-hover) 100%) !important;
     color: #ffffff !important;
-    font-weight: 600 !important;
+    font-weight: 700 !important;
     font-family: 'Inter', sans-serif !important;
     border: none !important;
     border-radius: 8px !important;
-    padding: 0.45rem 0.6rem !important;
-    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.85rem !important;
     white-space: nowrap !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 3px 10px rgba(99, 102, 241, 0.2) !important;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25) !important;
     width: 100% !important;
 }
 
 .stButton > button:hover {
     transform: translateY(-2px) !important;
-    box-shadow: 0 5px 15px rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4) !important;
     background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%) !important;
 }
 
-/* Details Modal Box */
+/* DETAILS PANEL */
 .details-container {
     background: rgba(19, 27, 46, 0.95);
     backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 20px;
     padding: clamp(1rem, 3vw, 2rem);
     margin-top: 1.5rem;
-    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.5);
 }
 
 .details-title {
@@ -219,8 +275,8 @@
 }
 
 .insights-box {
-    background: rgba(99, 102, 241, 0.08);
-    border: 1px solid rgba(99, 102, 241, 0.25);
+    background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.3);
     border-radius: 14px;
     padding: 1.25rem;
     margin-top: 1.25rem;
@@ -234,18 +290,10 @@
     margin-bottom: 0.75rem;
 }
 
-/* Inputs & Slider Controls */
-.stTextInput > div > div > input, .stSelectbox > div > div {
-    background-color: rgba(15, 23, 42, 0.8) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 10px !important;
-    color: var(--text-primary) !important;
-    font-size: 0.92rem !important;
-}
-
+/* BADGES */
 .badge-tag {
     display: inline-block;
-    padding: 0.25rem 0.7rem;
+    padding: 0.28rem 0.75rem;
     border-radius: 50px;
     font-size: 0.76rem;
     font-weight: 600;
@@ -254,24 +302,24 @@
 }
 
 .badge-indigo {
-    background: rgba(99, 102, 241, 0.18);
+    background: rgba(99, 102, 241, 0.22);
     color: #a5b4fc;
-    border: 1px solid rgba(99, 102, 241, 0.3);
+    border: 1px solid rgba(99, 102, 241, 0.4);
 }
 
 .badge-rose {
-    background: rgba(244, 63, 94, 0.18);
+    background: rgba(244, 63, 94, 0.22);
     color: #fda4af;
-    border: 1px solid rgba(244, 63, 94, 0.3);
+    border: 1px solid rgba(244, 63, 94, 0.4);
 }
 
 .badge-amber {
-    background: rgba(245, 197, 24, 0.18);
+    background: rgba(245, 197, 24, 0.22);
     color: #fde047;
-    border: 1px solid rgba(245, 197, 24, 0.3);
+    border: 1px solid rgba(245, 197, 24, 0.4);
 }
 
-/* Footer */
+/* FOOTER */
 .custom-footer {
     text-align: center;
     padding: 2rem 1rem;
