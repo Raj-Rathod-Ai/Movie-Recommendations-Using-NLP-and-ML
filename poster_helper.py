@@ -7,7 +7,7 @@ import hashlib
 def fetch_real_poster_url(title: str) -> str:
     """
     Fetch real high-resolution poster image for a movie or TV series.
-    Tries iTunes API first, then TVmaze API, OMDb API, and Wikipedia API.
+    Tries OMDb API first for exact IMDb poster art, then TVmaze API, then iTunes API with strict matching.
     """
     clean_title = title.strip()
     if not clean_title:
@@ -16,21 +16,15 @@ def fetch_real_poster_url(title: str) -> str:
     encoded_title = urllib.parse.quote(clean_title)
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-    # 1. Try iTunes Search API (Verify Title Match)
+    # 1. Try OMDb Free API Endpoint (Highest accuracy for exact movie & show titles)
     try:
-        url = f"https://itunes.apple.com/search?term={encoded_title}&limit=6"
+        url = f"https://www.omdbapi.com/?t={encoded_title}&apikey=trilogy"
         resp = requests.get(url, headers=headers, timeout=3)
         if resp.status_code == 200:
-            results = resp.json().get('results', [])
-            q_first_word = clean_title.lower().split()[0]
-            for item in results:
-                track_name = str(item.get('trackName') or item.get('collectionName') or item.get('trackCensoredName') or '').lower()
-                # Verify that the returned item actually shares title words
-                if q_first_word in track_name or any(w in track_name for w in clean_title.lower().split() if len(w) > 2):
-                    art = item.get('artworkUrl100') or item.get('artworkUrl60')
-                    if art and isinstance(art, str):
-                        high_res = art.replace('100x100bb.jpg', '600x900bb.jpg').replace('100x100bb.png', '600x900bb.jpg').replace('600x600bb', '600x900bb')
-                        return high_res
+            data = resp.json()
+            poster = data.get('Poster')
+            if poster and poster.startswith('http') and poster != 'N/A':
+                return poster
     except Exception:
         pass
 
@@ -48,20 +42,27 @@ def fetch_real_poster_url(title: str) -> str:
     except Exception:
         pass
 
-    # 3. Try OMDb Free API Endpoint
+    # 3. Try iTunes Search API (Strict title word match filter)
     try:
-        url = f"https://www.omdbapi.com/?t={encoded_title}&apikey=trilogy"
+        url = f"https://itunes.apple.com/search?term={encoded_title}&limit=10"
         resp = requests.get(url, headers=headers, timeout=3)
         if resp.status_code == 200:
-            poster = resp.json().get('Poster')
-            if poster and poster.startswith('http') and poster != 'N/A':
-                return poster
+            results = resp.json().get('results', [])
+            q_words = [w for w in clean_title.lower().split() if len(w) > 1 and w not in ['the', 'of', 'and', 'a', 'an', 'in', 'on', 'for', 'to']]
+            for item in results:
+                track_name = str(item.get('trackName') or item.get('collectionName') or item.get('trackCensoredName') or '').lower()
+                # Strict: ALL non-trivial query words must be present in iTunes track name
+                if q_words and all(w in track_name for w in q_words):
+                    art = item.get('artworkUrl100') or item.get('artworkUrl60')
+                    if art and isinstance(art, str):
+                        high_res = art.replace('100x100bb.jpg', '600x900bb.jpg').replace('100x100bb.png', '600x900bb.jpg').replace('600x600bb', '600x900bb')
+                        return high_res
     except Exception:
         pass
 
-
     # 4. Fallback SVG Poster
     return generate_svg_poster(clean_title)
+
 
 def generate_svg_poster(title: str, year: str = "") -> str:
     """

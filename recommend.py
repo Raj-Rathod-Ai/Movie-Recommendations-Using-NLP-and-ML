@@ -84,6 +84,14 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
             # Prioritize similarity (85%) over popularity (15%) for exact thematic match
             hybrid_scores = (0.85 * sim_scores) + (0.15 * norm_pop)
             
+            # Franchise / Franchise Collection Boosting (e.g. Spider-Man -> Spider-Man 2, Spider-Man 3)
+            target_title = str(df.iloc[idx].get('title', '')).lower()
+            core_words = [w for w in target_title.replace(':', ' ').replace('-', ' ').split() if len(w) > 3 and w not in ['the', 'movie', 'part']]
+            if core_words:
+                primary_kw = core_words[0]
+                franchise_mask = df['title'].astype(str).str.lower().str.contains(primary_kw).fillna(False).values
+                hybrid_scores += (0.45 * franchise_mask)
+
             target_genres = str(df.iloc[idx].get('genres', '')).lower()
             is_target_animation = 'animation' in target_genres
 
@@ -112,8 +120,9 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
             rec_df['similarity_score'] = sim_scores[top_indices]
             
             # Require minimum content similarity score (> 0.10) to return local results
-            if len(rec_df) > 0 and sim_scores[top_indices[0]] >= 0.10:
+            if len(rec_df) > 0 and (sim_scores[top_indices[0]] >= 0.10 or df.iloc[top_indices[0]]['title'].lower().startswith(core_words[0] if core_words else '')):
                 return rec_df, 'local'
+
 
         except Exception as e:
             print(f"Error computing similarity: {e}")
