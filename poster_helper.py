@@ -7,7 +7,7 @@ import hashlib
 def fetch_real_poster_url(title: str) -> str:
     """
     Fetch real high-resolution poster image for a movie or TV series.
-    Tries OMDb API first for exact IMDb poster art, then TVmaze API, then iTunes API with strict matching.
+    Tries TVmaze API first (best for TV shows), then OMDb API (best for movies), then iTunes API with strict word matching.
     """
     clean_title = title.strip()
     if not clean_title:
@@ -16,19 +16,7 @@ def fetch_real_poster_url(title: str) -> str:
     encoded_title = urllib.parse.quote(clean_title)
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
 
-    # 1. Try OMDb Free API Endpoint (Highest accuracy for exact movie & show titles)
-    try:
-        url = f"https://www.omdbapi.com/?t={encoded_title}&apikey=trilogy"
-        resp = requests.get(url, headers=headers, timeout=3)
-        if resp.status_code == 200:
-            data = resp.json()
-            poster = data.get('Poster')
-            if poster and poster.startswith('http') and poster != 'N/A':
-                return poster
-    except Exception:
-        pass
-
-    # 2. Try TVmaze API (Great for TV Shows like House of the Dragon, Money Heist, etc.)
+    # 1. Try TVmaze API first (Best for TV Series like Berlin, Money Heist, Lupin, Prison Break, House of the Dragon)
     try:
         url = f"https://api.tvmaze.com/singlesearch/shows?q={encoded_title}"
         resp = requests.get(url, headers=headers, timeout=3)
@@ -42,6 +30,18 @@ def fetch_real_poster_url(title: str) -> str:
     except Exception:
         pass
 
+    # 2. Try OMDb Free API Endpoint (Highest accuracy for exact movie titles: Man of Steel, Avatar, Spider-Man, Harry Potter)
+    try:
+        url = f"https://www.omdbapi.com/?t={encoded_title}&apikey=trilogy"
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            data = resp.json()
+            poster = data.get('Poster')
+            if poster and poster.startswith('http') and poster != 'N/A':
+                return poster
+    except Exception:
+        pass
+
     # 3. Try iTunes Search API (Strict title word match filter)
     try:
         url = f"https://itunes.apple.com/search?term={encoded_title}&limit=10"
@@ -50,7 +50,7 @@ def fetch_real_poster_url(title: str) -> str:
             results = resp.json().get('results', [])
             q_words = [w for w in clean_title.lower().split() if len(w) > 1 and w not in ['the', 'of', 'and', 'a', 'an', 'in', 'on', 'for', 'to']]
             for item in results:
-                track_name = str(item.get('trackName') or item.get('collectionName') or item.get('trackCensoredName') or '').lower()
+                track_name = str(item.get('trackName') or item.get('collectionName') or '').lower()
                 # Strict: ALL non-trivial query words must be present in iTunes track name
                 if q_words and all(w in track_name for w in q_words):
                     art = item.get('artworkUrl100') or item.get('artworkUrl60')
