@@ -49,10 +49,24 @@ def truncate_text(text: str, max_chars: int = 110) -> str:
     truncated = clean_text[:max_chars].rsplit(' ', 1)[0]
     return truncated + "..."
 
+ALIAS_MAP = {
+    'spiderman': ['Spider-Man', 'Spider-Man 2', 'Spider-Man 3', 'The Amazing Spider-Man', 'Spider-Man: Into the Spider-Verse', 'Spider-Man: No Way Home'],
+    'spider-man': ['Spider-Man', 'Spider-Man 2', 'Spider-Man 3', 'The Amazing Spider-Man', 'Spider-Man: Into the Spider-Verse', 'Spider-Man: No Way Home'],
+    'money heist': ['Money Heist', 'Berlin', 'Money Heist: Korea - Joint Economic Area'],
+    'money heist s4': ['Money Heist', 'Berlin', 'Money Heist: Korea - Joint Economic Area'],
+    'berlin': ['Berlin', 'Money Heist', 'Money Heist: Korea - Joint Economic Area'],
+    'harry poter': ['Harry Potter and the Sorcerer\'s Stone', 'Harry Potter and the Chamber of Secrets', 'Fantastic Beasts and Where to Find Them'],
+    'harry potter': ['Harry Potter and the Sorcerer\'s Stone', 'Harry Potter and the Chamber of Secrets', 'Fantastic Beasts and Where to Find Them'],
+    'house of dragon': ['House of the Dragon', 'Game of Thrones'],
+    'got': ['Game of Thrones', 'House of the Dragon'],
+    'dark knight': ['The Dark Knight', 'Batman Begins', 'The Dark Knight Rises', 'The Batman'],
+    'batman': ['The Dark Knight', 'Batman Begins', 'The Batman', 'The Dark Knight Rises']
+}
+
 @st.cache_data(show_spinner=False)
 def search_movies(query: str, all_titles: list, limit: int = 15) -> list:
     """
-    Ultra-fast high-accuracy search engine with typo tolerance and token matching.
+    Ultra-fast NLP search engine with typo auto-correction and alias mapping.
     """
     if not query or len(str(query).strip()) == 0:
         return [str(t) for t in all_titles if not str(t).isnumeric()][:limit]
@@ -60,12 +74,18 @@ def search_movies(query: str, all_titles: list, limit: int = 15) -> list:
     q_clean = str(query).strip().lower()
     q_words = [w for w in q_clean.replace(":", " ").replace("-", " ").split() if len(w) > 0]
 
-    prefix_matches = []
-    sub_matches = []
-    token_matches = []
+    matches = []
     seen = set()
 
-    # Quick first pass: Exact prefix or substring
+    # 1. Alias & Typo map lookup
+    for alias_key, mapped_list in ALIAS_MAP.items():
+        if alias_key in q_clean or q_clean in alias_key or (len(q_clean) >= 4 and difflib.SequenceMatcher(None, q_clean, alias_key).ratio() > 0.72):
+            for m in mapped_list:
+                if m.lower() not in seen:
+                    matches.append(m)
+                    seen.add(m.lower())
+
+    # 2. Prefix & Substring Match
     for t in all_titles:
         t_str = str(t)
         if t_str.isnumeric():
@@ -75,20 +95,16 @@ def search_movies(query: str, all_titles: list, limit: int = 15) -> list:
         if t_lower in seen:
             continue
 
-        if t_lower.startswith(q_clean):
-            prefix_matches.append(t_str)
+        if t_lower.startswith(q_clean) or q_clean in t_lower:
+            matches.append(t_str)
             seen.add(t_lower)
-            if len(prefix_matches) >= limit:
+            if len(matches) >= limit:
                 break
-        elif q_clean in t_lower:
-            sub_matches.append(t_str)
-            seen.add(t_lower)
 
-    combined = prefix_matches + sub_matches
-    if len(combined) >= limit:
-        return combined[:limit]
+    if len(matches) >= limit:
+        return matches[:limit]
 
-    # Token pass for multi-word queries or typos (e.g. "harry" + "poter")
+    # 3. Multi-word Token Match
     for t in all_titles:
         t_str = str(t)
         if t_str.isnumeric():
@@ -97,27 +113,25 @@ def search_movies(query: str, all_titles: list, limit: int = 15) -> list:
         if t_lower in seen:
             continue
 
-        # Check if all query words exist as substrings or fuzzy prefix in title
-        if all(w in t_lower for w in q_words) or (len(q_words) > 1 and sum(1 for w in q_words if w in t_lower) >= len(q_words) - 1):
-            token_matches.append(t_str)
+        if all(w in t_lower for w in q_words if len(w) > 1):
+            matches.append(t_str)
             seen.add(t_lower)
-            if len(combined) + len(token_matches) >= limit:
+            if len(matches) >= limit:
                 break
 
-    combined.extend(token_matches)
-    if len(combined) >= limit:
-        return combined[:limit]
+    if len(matches) >= limit:
+        return matches[:limit]
 
-    # Difflib candidate pass on small filtered sample if needed
-    if len(combined) < limit and len(q_clean) >= 3:
-        first_char = q_clean[0]
-        candidates = [str(t) for t in all_titles if str(t).lower().startswith(first_char) and not str(t).isnumeric()]
-        fuzzy_close = difflib.get_close_matches(q_clean, candidates, n=limit, cutoff=0.5)
+    # 4. Global Difflib Typo Auto-Corrector
+    if len(matches) < limit and len(q_clean) >= 3:
+        all_non_numeric = [str(t) for t in all_titles if not str(t).isnumeric()]
+        fuzzy_close = difflib.get_close_matches(q_clean, all_non_numeric, n=limit, cutoff=0.50)
         for fz in fuzzy_close:
             if fz.lower() not in seen:
-                combined.append(fz)
+                matches.append(fz)
                 seen.add(fz.lower())
 
-    return combined[:limit]
+    return matches[:limit]
+
 
 

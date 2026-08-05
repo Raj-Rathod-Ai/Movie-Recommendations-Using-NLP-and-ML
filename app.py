@@ -213,17 +213,22 @@ if st.session_state.selected_movie_detail:
             st.markdown(f"**Genres:** `{det['genres']}`")
             st.markdown(f"**Synopsis:**\n{det['overview']}")
 
-            # Auto-Play YouTube Trailer Embed
+            # Auto-Play YouTube Trailer Embed with Instant Caching & Full Audio Link
             yt_embed_url = get_yt_trailer_embed_url(det["title"])
+            yt_watch_url = yt_embed_url.replace('/embed/', '/watch?v=').split('?')[0] if '/embed/' in yt_embed_url else f"https://www.youtube.com/results?search_query={urllib.parse.quote(det['title'] + ' trailer')}"
             
             st.markdown(f"""
             <div style="margin-top: 1.25rem;">
-                <div style="font-weight: 700; color: #f43f5e; margin-bottom: 8px; font-size: 1.05rem;">▶ Official Trailer (Auto-Play)</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: 700; color: #f43f5e; font-size: 1.05rem;">▶ Official Trailer (Auto-Play)</div>
+                    <a href="{yt_watch_url}" target="_blank" style="color: #6366f1; font-weight: 600; text-decoration: none; font-size: 0.88rem; background: rgba(99, 102, 241, 0.15); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(99, 102, 241, 0.3);">🔊 Open in YouTube (Full Stereo Audio) ↗</a>
+                </div>
                 <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); border: 1px solid rgba(244, 63, 94, 0.3);">
-                    <iframe src="{yt_embed_url}" title="{det['title']} Official Trailer" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"></iframe>
+                    <iframe src="{yt_embed_url}" title="{det['title']} Official Trailer" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"></iframe>
                 </div>
             </div>
             """, unsafe_allow_html=True)
+
 
         # Highlights & Insights Panel
         st.markdown("<br>", unsafe_allow_html=True)

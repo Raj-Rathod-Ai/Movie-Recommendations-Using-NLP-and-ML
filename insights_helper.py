@@ -4,9 +4,11 @@ import re
 import urllib.parse
 import requests
 import logging
+import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+
 
 load_dotenv()
 
@@ -25,23 +27,26 @@ def get_client(access_key: str = None):
         logger.error(f"Error initializing client: {e}")
         return None
 
+@st.cache_data(ttl=86400, show_spinner=False)
 def get_yt_trailer_embed_url(title: str) -> str:
     """
-    Fetch YouTube official trailer video embed URL for auto-playing.
+    Fetch YouTube official trailer video embed URL for auto-playing with stereo audio.
+    Cached for instant 0ms load times.
     """
     query = f"{title} official trailer"
     encoded_query = urllib.parse.quote(query)
     search_url = f"https://www.youtube.com/results?search_query={encoded_query}"
     try:
         headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
-        r = requests.get(search_url, headers=headers, timeout=4)
+        r = requests.get(search_url, headers=headers, timeout=3)
         if r.status_code == 200:
             video_ids = re.findall(r'"videoId":"([a-zA-Z0-9_-]{11})"', r.text)
             if video_ids:
-                return f"https://www.youtube.com/embed/{video_ids[0]}?autoplay=1&rel=0&enablejsapi=1"
+                return f"https://www.youtube.com/embed/{video_ids[0]}?autoplay=1&mute=0&rel=0&enablejsapi=1"
     except Exception as e:
         logger.warning(f"Error fetching YouTube video ID: {e}")
-    return f"https://www.youtube.com/embed?listType=search&list={encoded_query}&autoplay=1"
+    return f"https://www.youtube.com/embed?listType=search&list={encoded_query}&autoplay=1&mute=0"
+
 
 def get_movie_insights(movie_title: str, overview: str = "", genres: str = "", access_key: str = None) -> dict:
     """
