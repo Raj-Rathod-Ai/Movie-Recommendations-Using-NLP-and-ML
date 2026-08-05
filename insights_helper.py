@@ -27,13 +27,48 @@ def get_client(access_key: str = None):
         logger.error(f"Error initializing client: {e}")
         return None
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def get_yt_trailer_embed_url(title: str) -> str:
+def is_fake_article_title(title: str) -> bool:
     """
-    Fetch YouTube official trailer video embed URL for auto-playing with stereo audio.
+    Filter out web search blog article titles (e.g. '15 Shows Like...', 'Movies Like...') to prevent fake recommendations.
+    """
+    t_lower = str(title).lower().strip()
+    if not t_lower or len(t_lower) < 2:
+        return True
+    fake_keywords = [
+        'shows like', 'movies like', 'top 10', 'top 15', 'top 20', 'top 5', 'top 8',
+        'best movies', 'best shows', 'similar tv shows', 'watch next',
+        'like netflix', 'like money heist', 'similar to', 'recommendations for',
+        'bestsimilar', 'tudum', 'reddit', 'imdb', 'wiki', 'youtube', 'article'
+    ]
+    if any(kw in t_lower for kw in fake_keywords):
+        return True
+    if t_lower.startswith(('10 ', '15 ', '20 ', '5 ', '7 ', '8 ', '12 ', 'best ', 'top ')):
+        return True
+    return False
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def get_yt_trailer_embed_url(title: str, lang: str = "en") -> str:
+    """
+    Fetch YouTube official trailer video embed URL for auto-playing with stereo audio in selected language.
     Cached for instant 0ms load times.
     """
-    query = f"{title} official trailer"
+    lang_suffix = ""
+    if lang == "hi":
+        lang_suffix = " hindi"
+    elif lang == "es":
+        lang_suffix = " espanol"
+    elif lang == "fr":
+        lang_suffix = " french"
+    elif lang == "ja":
+        lang_suffix = " japanese"
+    elif lang == "ko":
+        lang_suffix = " korean"
+    elif lang == "ta":
+        lang_suffix = " tamil"
+    elif lang == "te":
+        lang_suffix = " telugu"
+
+    query = f"{title} official trailer{lang_suffix}"
     encoded_query = urllib.parse.quote(query)
     search_url = f"https://www.youtube.com/results?search_query={encoded_query}"
     try:
@@ -48,9 +83,10 @@ def get_yt_trailer_embed_url(title: str) -> str:
     return f"https://www.youtube.com/embed?listType=search&list={encoded_query}&autoplay=1&mute=0"
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
 def get_movie_insights(movie_title: str, overview: str = "", genres: str = "", access_key: str = None) -> dict:
     """
-    Generate detailed movie summary, rationale, mood, audience, and trivia.
+    Generate detailed movie summary, rationale, mood, audience, and trivia with instant caching.
     """
     client = get_client(access_key)
     if not client:
@@ -99,6 +135,7 @@ def get_movie_insights(movie_title: str, overview: str = "", genres: str = "", a
             "fun_fact": "This title stands out in its genre for its distinct direction."
         }
 
+
 def fetch_mistral_recommendations(query: str, top_n: int = 10) -> list:
     """
     Call Mistral AI API to generate high-accuracy JSON recommendations.
@@ -134,24 +171,24 @@ def fetch_mistral_recommendations(query: str, top_n: int = 10) -> list:
 
 def fetch_tavily_search_recommendations(query: str, top_n: int = 10) -> list:
     """
-    Call Tavily Search API to retrieve live web recommendations.
+    Call Tavily Search API to retrieve live web recommendations, strictly filtering out fake article headers.
     """
     tavily_key = os.environ.get("TAVILY_API_KEY") or "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"
     if not tavily_key:
         return None
 
-    data = {'api_key': tavily_key, 'query': f'movies and TV series similar to {query}', 'max_results': top_n + 4}
+    data = {'api_key': tavily_key, 'query': f'official movie TV show names similar to {query}', 'max_results': top_n + 6}
     try:
-        r = requests.post('https://api.tavily.com/search', json=data, timeout=6)
+        r = requests.post('https://api.tavily.com/search', json=data, timeout=5)
         if r.status_code == 200:
             results = r.json().get('results', [])
             items = []
             for item in results:
-                title = item.get('title', '').split('|')[0].split('-')[0].strip()
+                raw_title = item.get('title', '').split('|')[0].split('-')[0].strip()
                 snippet = item.get('content', '')[:120]
-                if title and len(title) > 3 and not title.lower().startswith('best'):
+                if raw_title and not is_fake_article_title(raw_title):
                     items.append({
-                        "title": title,
+                        "title": raw_title,
                         "release_year": "2023",
                         "genres": "Drama Action Thriller",
                         "vote_average": 8.2,
@@ -163,6 +200,7 @@ def fetch_tavily_search_recommendations(query: str, top_n: int = 10) -> list:
     except Exception as e:
         logger.warning(f"Tavily Search API error: {e}")
     return None
+
 
 def get_smart_fallback_recommendations(query: str, top_n: int = 10, access_key: str = None) -> list:
     """

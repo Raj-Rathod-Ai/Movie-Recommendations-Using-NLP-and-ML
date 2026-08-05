@@ -67,11 +67,27 @@ st.markdown("""
 <div class="hero-header">
     <div class="hero-title">🎬 CinemaVerse</div>
     <div class="hero-subtitle">Discover your next favorite movie & series with high accuracy AI recommendations</div>
+    <div style="font-size: 0.88rem; color: #a5b4fc; margin-top: 8px; font-weight: 600;">⚡ Powered by NLP Typo Auto-Corrector & Multi-LLM AI Engine (Gemini + Mistral AI)</div>
 </div>
 """, unsafe_allow_html=True)
 
+# Language Options Mapping
+LANG_OPTIONS = {
+    "🌐 All Languages": "all",
+    "🇺🇸 English": "en",
+    "🇮🇳 Hindi": "hi",
+    "🇪🇸 Spanish": "es",
+    "🇫🇷 French": "fr",
+    "🇯🇵 Japanese": "ja",
+    "🇰🇷 Korean": "ko",
+    "🇩🇪 German": "de",
+    "🇮🇹 Italian": "it",
+    "🇮🇳 Tamil": "ta",
+    "🇮🇳 Telugu": "te"
+}
+
 # 7. Search & Discovery Controls
-col_search, col_count, col_btn1, col_btn2 = st.columns([3, 2, 1, 1])
+col_search, col_lang, col_count, col_btn1, col_btn2 = st.columns([3, 2, 2, 1, 1])
 
 with col_search:
     user_query = st.text_input("Search for a movie or TV series:", value=st.session_state.current_search, placeholder="Type title (e.g. Money Heist, Harry Potter, House of Dragon)...")
@@ -89,6 +105,15 @@ with col_search:
         options=search_options,
         index=0 if search_options else None
     )
+
+with col_lang:
+    selected_lang_name = st.selectbox(
+        "🌐 Audio / Language:",
+        options=list(LANG_OPTIONS.keys()),
+        index=0,
+        help="Reduce load & filter recommendations by language"
+    )
+    selected_lang_code = LANG_OPTIONS[selected_lang_name]
 
 with col_count:
     num_recs = st.select_slider(
@@ -127,17 +152,22 @@ if get_rec_btn or selected_movie:
         if clean_sel not in st.session_state.recently_viewed:
             st.session_state.recently_viewed.append(clean_sel)
 
-        st.markdown(f"### 🍿 Top {num_recs} Recommendations for **{format_movie_title(clean_sel)}**")
+        st.markdown(f"### 🍿 Top {num_recs} Recommendations for **{format_movie_title(clean_sel)}** ({selected_lang_name})")
         
         with st.spinner("Generating accurate recommendations..."):
             rec_df, source = get_recommendations(
-                clean_sel, df, indices, tfidf_matrix, top_n=num_recs
+                clean_sel, df, indices, tfidf_matrix, top_n=num_recs, lang=selected_lang_code
             )
 
-        grid_cols = st.columns(4)
+        if rec_df.empty:
+            st.info("🔍 No relevant movies or TV series found for this search query/filter. Please try searching for a different title or clearing your language filter.")
+        else:
+            grid_cols = st.columns(4)
 
-        for idx_pos, (_, row) in enumerate(rec_df.iterrows()):
-            if idx_pos >= num_recs:
+            for idx_pos, (_, row) in enumerate(rec_df.iterrows()):
+                if idx_pos >= num_recs:
+                    break
+
                 break
 
             m_title = str(row.get("title", "Unknown Title"))
@@ -214,8 +244,9 @@ if st.session_state.selected_movie_detail:
             st.markdown(f"**Synopsis:**\n{det['overview']}")
 
             # Auto-Play YouTube Trailer Embed with Instant Caching & Full Audio Link
-            yt_embed_url = get_yt_trailer_embed_url(det["title"])
+            yt_embed_url = get_yt_trailer_embed_url(det["title"], lang=selected_lang_code)
             yt_watch_url = yt_embed_url.replace('/embed/', '/watch?v=').split('?')[0] if '/embed/' in yt_embed_url else f"https://www.youtube.com/results?search_query={urllib.parse.quote(det['title'] + ' trailer')}"
+
             
             st.markdown(f"""
             <div style="margin-top: 1.25rem;">

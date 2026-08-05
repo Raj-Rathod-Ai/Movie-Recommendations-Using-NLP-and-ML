@@ -15,9 +15,9 @@ def is_valid_title_match(query_title: str, match_title: str) -> bool:
     matched_count = sum(1 for qw in q_words if any(qw == mw or difflib.SequenceMatcher(None, qw, mw).ratio() > 0.82 for mw in m_words))
     return (matched_count / len(q_words)) >= 0.75
 
-def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, tfidf_matrix, top_n: int = 10, access_key: str = None) -> tuple:
+def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, tfidf_matrix, top_n: int = 10, lang: str = "all", access_key: str = None) -> tuple:
     """
-    Get top N relevant movie & series recommendations based on content similarity.
+    Get top N relevant movie & series recommendations based on content similarity and selected language.
     Filters out obscure, numeric, or corrupt rows and falls back cleanly to smart AI recommendations.
     """
     clean_title = movie_title.strip()
@@ -66,8 +66,6 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
                         break
 
 
-
-
     # 2. High-Accuracy Content Similarity Ranking
     if idx is not None and idx < len(df):
         try:
@@ -97,7 +95,14 @@ def get_recommendations(movie_title: str, df: pd.DataFrame, indices: pd.Series, 
 
             # Penalize numeric titles, unrated titles, or mismatched animation movies
             valid_mask = (votes > 4.0) & (~is_numeric_title)
+
+            # Apply language filter if specific language selected
+            if lang and lang.lower() != 'all':
+                lang_mask = (df['original_language'].astype(str).str.lower() == lang.lower())
+                valid_mask = valid_mask & lang_mask
+
             hybrid_scores[~valid_mask] *= 0.05
+
             
             sorted_indices = np.argsort(hybrid_scores)[::-1]
             
